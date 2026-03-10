@@ -39,7 +39,9 @@ The project was built with a 10-year-old user in mind, with a deliberate focus o
 A complete local authentication system built without any third-party OAuth dependency. Users register with a username and password; passwords are hashed with **bcrypt** (12 rounds) before storage. Sessions are maintained via signed HTTP-only cookies that persist for 7 days. The dashboard greets every returning player with **"Welcome back, [Username]!"** prominently displayed in the Bangers gaming font.
 
 ### The Quest Dashboard
-Five daily quest cards are presented on the main dashboard, each representing a real-world task the player should complete that day. Every card displays the quest name, a short motivational description, the XP reward, and a chunky green **Complete** button. Once a quest is marked done, the card immediately updates to a strikethrough "✓ Done!" state via optimistic UI updates — no waiting for the server.
+Five daily quest cards are presented on the main dashboard, each representing a real-world task the player should complete that day. Every card displays the quest name, a short motivational description, the XP reward, and a chunky green **Complete** button. Once a quest is marked done, the card immediately updates to a strikethrough state via optimistic UI updates — no waiting for the server.
+
+Completed quests display an amber **"↩ Undo"** button in place of the Complete button. Clicking Undo removes the completion record from the database, subtracts the 50 XP, and instantly restores the quest to its incomplete state — again via optimistic updates so the UI responds before the server confirms. If the XP subtraction causes the player's current-level XP to go negative, the system automatically decrements the level and carries the remaining XP forward (e.g. undoing a quest at 30 XP on Level 2 drops to Level 1 at 480 XP). The XP hint on the card also updates to show **"-50 XP if undone"** while a quest is in the completed state, so the player always knows the consequence before clicking.
 
 | Quest | Description | XP |
 |---|---|---|
@@ -128,8 +130,8 @@ level-up-portal/
 │           └── Dashboard.tsx   # Main game screen
 ├── server/
 │   ├── routers.ts              # All tRPC procedures + QUESTS/BADGES constants
-│   ├── db.ts                   # Database query helpers
-│   ├── levelup.test.ts         # 18 feature tests
+│   ├── db.ts                   # Database query helpers (incl. uncompleteQuest, subtractXp)
+│   ├── levelup.test.ts         # 23 feature tests (incl. quest undo suite)
 │   └── auth.logout.test.ts     # Session/cookie tests
 ├── drizzle/
 │   └── schema.ts               # Database table definitions (source of truth)
@@ -207,13 +209,13 @@ pnpm drizzle-kit generate   # Generate migration SQL from schema changes
 
 ## Testing
 
-The project ships with **19 Vitest tests** covering all critical paths:
+The project ships with **24 Vitest tests** covering all critical paths:
 
 ```bash
 pnpm test
 ```
 
-Test coverage includes registration validation (duplicate usernames, password length, special characters), login authentication, quest listing and completion, XP award logic, level-up detection at the 500 XP threshold, badge unlock conditions, and the session cookie lifecycle. All tests mock the database layer and the session SDK so they run without a live database connection.
+Test coverage includes registration validation (duplicate usernames, password length, special characters), login authentication, quest listing and completion, XP award logic, level-up detection at the 500 XP threshold, **quest undo logic** (XP subtraction, level-down handling, CONFLICT when not completed today), badge unlock conditions, and the session cookie lifecycle. All tests mock the database layer and the session SDK so they run without a live database connection.
 
 ---
 
@@ -239,7 +241,9 @@ The portal is designed to be easily adapted. The most common customisations are:
 
 **Why SQL `DATE` for quest completions?** Storing a `TIMESTAMP` and comparing with `DATE()` in SQL would work, but constructing the comparison date from `new Date().toISOString()` introduces a UTC offset that shifts the date backward for users in UTC+ timezones, causing quests completed in the evening to appear as "already completed" the next morning. Using a `DATE` column populated with `new Date(year, month, day)` (local time components) eliminates this class of bug entirely.
 
-**Optimistic updates** — Quest completion uses the `onMutate` / `onError` / `onSettled` tRPC mutation pattern. The quest card flips to "Done!" instantly on click; if the server returns an error, the cache rolls back automatically. This makes the UI feel instantaneous even on slow connections.
+**Optimistic updates** — Both quest completion and quest undo use the `onMutate` / `onError` / `onSettled` tRPC mutation pattern. The quest card flips state instantly on click; if the server returns an error, the cache rolls back automatically. This makes the UI feel instantaneous even on slow connections.
+
+**Quest undo design** — The undo flow mirrors the complete flow in reverse: `uncompleteQuest()` deletes the `user_quests` record for today, then `subtractXp()` decrements the XP. If the subtraction would push `xp` below zero and the player is above Level 1, the system borrows from the previous level (`newXp = XP_PER_LEVEL + newXp`) and decrements the level. At Level 1, XP is clamped to 0 rather than going negative. `totalXp` (lifetime earnings) is also decremented but never goes below 0.
 
 ---
 

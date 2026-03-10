@@ -90,6 +90,17 @@ Buttons must feel **chunky and 3D**. The `.roblox-btn` CSS class in `client/src/
 
 **Never** use flat, borderless, or shadow-free buttons in this project. Every interactive element should feel physically pressable.
 
+**Button colour variants** defined in `client/src/index.css`:
+
+| Class | Colour | Usage |
+|---|---|---|
+| `.roblox-btn` (default) | Neon Lime green | Complete quest, primary CTAs |
+| `.roblox-btn-secondary` | Dark forest green | Logout, secondary actions |
+| `.roblox-btn-danger` | Red-orange | Destructive actions |
+| `.roblox-btn-undo` | Amber/orange | Undo quest completion (signals reversible action) |
+
+The amber colour for `.roblox-btn-undo` is intentional — it is visually distinct from the green Complete button so the player immediately understands it reverses an action rather than completing one.
+
 ### Badge Room Rules
 
 - All badges render with `.badge-item` class — **grayscale, 50% opacity** when locked.
@@ -123,12 +134,26 @@ Quest completed
           leveledUp = true
   → checkAndUnlockBadges(userId)
   → return { xpGained: 50, xp, level, leveledUp, newLevel, newBadges }
+
+Quest undone (Undo button clicked)
+  → uncompleteQuest(userId, questKey)  // deletes today’s record; returns false if not found
+  → subtractXp(userId, 50)
+      xp -= 50
+      if xp < 0 and level > 1:
+          level -= 1
+          xp = XP_PER_LEVEL + xp   // borrow from previous level (e.g. -10 → 490)
+          leveledDown = true
+      if xp < 0 and level == 1:
+          xp = 0                   // clamp at floor, never negative
+      totalXp = max(0, totalXp - 50)
+  → return { xpLost: 50, xp, level, leveledDown }
 ```
 
 - **XP per quest:** 50 (all quests equal)
 - **XP to level up:** 500 (configurable via `XP_PER_LEVEL` in `server/db.ts`)
 - **`xp`** tracks progress within the current level (0–499); resets on level-up.
 - **`totalXp`** is the lifetime cumulative total; used for XP-based badge thresholds. Never resets.
+- **Undo is day-scoped** — only quests completed *today* can be undone. Attempting to undo a quest from a previous day returns a CONFLICT error.
 
 ### Daily Quest Reset
 
@@ -159,8 +184,8 @@ level-up-portal/
 │           └── Dashboard.tsx   ← Main game screen (XP bar, quests, badge room)
 ├── server/
 │   ├── routers.ts              ← tRPC procedures + QUESTS/BADGES constants (exported)
-│   ├── db.ts                   ← All database query helpers
-│   ├── levelup.test.ts         ← 18 feature tests (auth, quests, XP, badges)
+│   ├── db.ts                   ← All database query helpers (incl. uncompleteQuest, subtractXp)
+│   ├── levelup.test.ts         ← 23 feature tests (auth, quests, XP, undo, badges)
 │   └── auth.logout.test.ts     ← Template logout test (updated for dual-cookie logout)
 ├── drizzle/
 │   └── schema.ts               ← Database table definitions (source of truth)
@@ -195,6 +220,12 @@ When adding any new feature, follow this order:
 5. Use **optimistic updates** (`onMutate` / `onError` / `onSettled`) for any toggle or list mutation.
 6. Add vitest tests in `server/*.test.ts`.
 7. Verify TypeScript: `pnpm check` must return 0 errors.
+
+**When adding a reversible action (like the quest undo):**
+- Add a `remove`/`delete` DB helper that is day-scoped or otherwise guarded against accidental data loss.
+- Add a corresponding `subtract`/`decrement` helper with floor-clamping logic.
+- Add the tRPC procedure and mirror the optimistic update pattern from `quest.uncomplete` in `routers.ts`.
+- Use `.roblox-btn-undo` (amber) for the undo button so it is visually distinct from the primary action.
 
 ---
 
