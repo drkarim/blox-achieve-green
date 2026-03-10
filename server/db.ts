@@ -153,6 +153,60 @@ export async function completeQuest(userId: number, questKey: string): Promise<b
   return true;
 }
 
+export async function uncompleteQuest(userId: number, questKey: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const today = getTodayDate();
+  const todayStr = today.toISOString().split('T')[0];
+  // Only delete if it was actually completed today
+  const existing = await db.select().from(userQuests)
+    .where(and(
+      eq(userQuests.userId, userId),
+      eq(userQuests.questKey, questKey),
+      sql`DATE(${userQuests.completedDate}) = DATE(${todayStr})`
+    ));
+  if (existing.length === 0) return false; // wasn't completed today
+  await db.delete(userQuests)
+    .where(and(
+      eq(userQuests.userId, userId),
+      eq(userQuests.questKey, questKey),
+      sql`DATE(${userQuests.completedDate}) = DATE(${todayStr})`
+    ));
+  return true;
+}
+
+export async function subtractXp(userId: number, amount: number): Promise<{ xp: number; level: number; leveledDown: boolean }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const progress = await getUserProgress(userId);
+  if (!progress) throw new Error("Progress not found");
+
+  const XP_PER_LEVEL = 500;
+  let newXp = progress.xp - amount;
+  let newLevel = progress.level;
+  let leveledDown = false;
+
+  // If XP goes negative, borrow from the previous level
+  if (newXp < 0 && newLevel > 1) {
+    newLevel = progress.level - 1;
+    newXp = XP_PER_LEVEL + newXp; // e.g. -10 → 490
+    leveledDown = true;
+  } else if (newXp < 0) {
+    // Already at level 1 — clamp to 0, don't go negative
+    newXp = 0;
+  }
+
+  // totalXp tracks lifetime earnings — subtract but never go below 0
+  const newTotalXp = Math.max(0, progress.totalXp - amount);
+
+  await db.update(userProgress)
+    .set({ xp: newXp, level: newLevel, totalXp: newTotalXp })
+    .where(eq(userProgress.userId, userId));
+
+  return { xp: newXp, level: newLevel, leveledDown };
+}
+
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 
 export async function getUserBadges(userId: number): Promise<string[]> {

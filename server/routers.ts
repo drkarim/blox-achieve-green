@@ -14,6 +14,8 @@ import {
   getUserBadges,
   getUserByUsername,
   getUserProgress,
+  subtractXp,
+  uncompleteQuest,
 } from "./db";
 import { sdk } from "./_core/sdk";
 
@@ -113,6 +115,28 @@ export const appRouter = router({
         completed: completed.includes(q.key),
       }));
     }),
+
+    uncomplete: protectedProcedure
+      .input(z.object({ questKey: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const quest = QUESTS.find(q => q.key === input.questKey);
+        if (!quest) throw new TRPCError({ code: "NOT_FOUND", message: "Quest not found" });
+
+        const wasUncompleted = await uncompleteQuest(ctx.user.id, input.questKey);
+        if (!wasUncompleted) {
+          throw new TRPCError({ code: "CONFLICT", message: "Quest was not completed today — nothing to undo." });
+        }
+
+        const result = await subtractXp(ctx.user.id, quest.xp);
+
+        return {
+          success: true,
+          xpLost: quest.xp,
+          xp: result.xp,
+          level: result.level,
+          leveledDown: result.leveledDown,
+        };
+      }),
 
     complete: protectedProcedure
       .input(z.object({ questKey: z.string() }))

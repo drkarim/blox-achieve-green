@@ -30,3 +30,12 @@
 - [x] Auth register/login vitest tests
 - [x] Quest completion vitest tests
 - [x] XP/level-up logic vitest tests
+
+## Quest Undo Feature
+- [ ] Add uncompleteQuest DB helper (delete today's quest record)
+- [ ] Add subtractXp DB helper (subtract XP, handle level-down if XP goes negative)
+- [ ] Add quest.uncomplete tRPC procedure
+- [ ] Update Dashboard UI: completed quest shows "Undo" button to toggle back to incomplete
+- [ ] Optimistic update for uncomplete action
+- [ ] Write tests for uncomplete flow
+- [ ] Push to GitHub and save checkpoint

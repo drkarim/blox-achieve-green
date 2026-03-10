@@ -86,12 +86,17 @@ function XPBar({ xp, level, xpToNextLevel }: { xp: number; level: number; xpToNe
 function QuestCard({
   quest,
   onComplete,
-  isLoading,
+  onUncomplete,
+  isCompleting,
+  isUncompleting,
 }: {
   quest: { key: string; label: string; description: string; icon: string; xp: number; completed: boolean };
   onComplete: (key: string) => void;
-  isLoading: boolean;
+  onUncomplete: (key: string) => void;
+  isCompleting: boolean;
+  isUncompleting: boolean;
 }) {
+  const isLoading = isCompleting || isUncompleting;
   return (
     <div className={`roblox-card quest-card-enter p-5 flex items-center gap-4 ${quest.completed ? "roblox-card-completed" : ""}`}>
       {/* Icon */}
@@ -109,6 +114,7 @@ function QuestCard({
         border: `2px solid ${quest.completed ? "oklch(0.40 0.10 142)" : "oklch(0.35 0.14 142)"}`,
         flexShrink: 0,
         filter: quest.completed ? "grayscale(0.5)" : "none",
+        transition: "all 0.2s ease",
       }}>
         {quest.completed ? "✅" : quest.icon}
       </div>
@@ -121,6 +127,7 @@ function QuestCard({
           fontSize: "1.2rem",
           color: quest.completed ? "oklch(0.55 0.08 142)" : "oklch(0.97 0.01 145)",
           textDecoration: quest.completed ? "line-through" : "none",
+          transition: "all 0.2s ease",
         }}>
           {quest.label}
         </div>
@@ -136,35 +143,32 @@ function QuestCard({
           fontFamily: "'Fredoka', sans-serif",
           fontWeight: 700,
           fontSize: "0.85rem",
-          color: "oklch(0.72 0.22 142)",
+          color: quest.completed ? "oklch(0.45 0.08 142)" : "oklch(0.72 0.22 142)",
           marginTop: "4px",
+          transition: "color 0.2s ease",
         }}>
-          +{quest.xp} XP
+          {quest.completed ? `-${quest.xp} XP if undone` : `+${quest.xp} XP`}
         </div>
       </div>
 
-      {/* Complete Button */}
+      {/* Action Button */}
       <div style={{ flexShrink: 0 }}>
         {quest.completed ? (
-          <div style={{
-            fontFamily: "'Fredoka', sans-serif",
-            fontWeight: 700,
-            fontSize: "0.95rem",
-            color: "oklch(0.55 0.08 142)",
-            padding: "0.5rem 1rem",
-            borderRadius: "10px",
-            border: "2px solid oklch(0.35 0.08 142)",
-            background: "oklch(0.18 0.04 142)",
-          }}>
-            ✓ Done!
-          </div>
+          <button
+            className="roblox-btn roblox-btn-sm roblox-btn-undo"
+            onClick={() => onUncomplete(quest.key)}
+            disabled={isLoading}
+            title="Click to undo this quest completion"
+          >
+            {isUncompleting ? "⏳" : "↩ Undo"}
+          </button>
         ) : (
           <button
             className="roblox-btn roblox-btn-sm"
             onClick={() => onComplete(quest.key)}
             disabled={isLoading}
           >
-            {isLoading ? "⏳" : "✔ Complete"}
+            {isCompleting ? "⏳" : "✔ Complete"}
           </button>
         )}
       </div>
@@ -221,6 +225,7 @@ export default function Dashboard() {
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [newLevel, setNewLevel] = useState(1);
   const [completingQuest, setCompletingQuest] = useState<string | null>(null);
+  const [uncomletingQuest, setUncompletingQuest] = useState<string | null>(null);
   const utils = trpc.useUtils();
 
   useEffect(() => {
@@ -282,9 +287,41 @@ export default function Dashboard() {
     },
   });
 
+  const uncompleteQuestMutation = trpc.quest.uncomplete.useMutation({
+    onMutate: async ({ questKey }) => {
+      setUncompletingQuest(questKey);
+      await utils.quest.list.cancel();
+      const prev = utils.quest.list.getData();
+      utils.quest.list.setData(undefined, (old) =>
+        old?.map(q => q.key === questKey ? { ...q, completed: false } : q)
+      );
+      return { prev };
+    },
+    onSuccess: (data) => {
+      setUncompletingQuest(null);
+      utils.progress.get.invalidate();
+      toast(`-${data.xpLost} XP removed ↩`, { duration: 2000 });
+      if (data.leveledDown) {
+        toast(`Level dropped to ${data.level} — keep going! 💪`, { duration: 3000 });
+      }
+    },
+    onError: (err, _vars, context) => {
+      setUncompletingQuest(null);
+      if (context?.prev) utils.quest.list.setData(undefined, context.prev);
+      toast.error(err.message || "Could not undo quest!");
+    },
+    onSettled: () => {
+      utils.quest.list.invalidate();
+    },
+  });
+
   const handleCompleteQuest = useCallback((questKey: string) => {
     completeQuestMutation.mutate({ questKey });
   }, [completeQuestMutation]);
+
+  const handleUncompleteQuest = useCallback((questKey: string) => {
+    uncompleteQuestMutation.mutate({ questKey });
+  }, [uncompleteQuestMutation]);
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -429,7 +466,9 @@ export default function Dashboard() {
                   key={quest.key}
                   quest={quest}
                   onComplete={handleCompleteQuest}
-                  isLoading={completingQuest === quest.key}
+                  onUncomplete={handleUncompleteQuest}
+                  isCompleting={completingQuest === quest.key}
+                  isUncompleting={uncomletingQuest === quest.key}
                 />
               ))
             )}

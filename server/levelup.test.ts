@@ -11,7 +11,9 @@ vi.mock("./db", () => ({
   getUserProgress: vi.fn(),
   getTodayCompletedQuests: vi.fn(),
   completeQuest: vi.fn(),
+  uncompleteQuest: vi.fn(),
   addXp: vi.fn(),
+  subtractXp: vi.fn(),
   checkAndUnlockBadges: vi.fn(),
   getUserBadges: vi.fn(),
 }));
@@ -222,8 +224,58 @@ describe("badge.list", () => {
     expect(result.find(b => b.key === "level_5")?.unlocked).toBe(false);
   });
 });
+// ─── Quest Uncomplete Tests ─────────────────────────────────────────────────────
+describe("quest.uncomplete", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-// ─── QUESTS/BADGES metadata ───────────────────────────────────────────────────
+  it("subtracts 50 XP when a quest is uncompleted", async () => {
+    vi.mocked(db.uncompleteQuest).mockResolvedValue(true);
+    vi.mocked(db.subtractXp).mockResolvedValue({ xp: 0, level: 1, leveledDown: false });
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.quest.uncomplete({ questKey: "daily_grind" });
+    expect(result.success).toBe(true);
+    expect(result.xpLost).toBe(50);
+    expect(db.subtractXp).toHaveBeenCalledWith(1, 50);
+  });
+
+  it("throws CONFLICT if quest was not completed today", async () => {
+    vi.mocked(db.uncompleteQuest).mockResolvedValue(false);
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.quest.uncomplete({ questKey: "daily_grind" })
+    ).rejects.toThrow("Quest was not completed today");
+  });
+
+  it("throws NOT_FOUND for invalid quest key", async () => {
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.quest.uncomplete({ questKey: "invalid_quest" })
+    ).rejects.toThrow("Quest not found");
+  });
+
+  it("reports leveledDown when XP subtraction causes level drop", async () => {
+    vi.mocked(db.uncompleteQuest).mockResolvedValue(true);
+    vi.mocked(db.subtractXp).mockResolvedValue({ xp: 450, level: 1, leveledDown: true });
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.quest.uncomplete({ questKey: "homework_quest" });
+    expect(result.leveledDown).toBe(true);
+    expect(result.level).toBe(1);
+  });
+
+  it("requires authentication", async () => {
+    const ctx = createContext(null);
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.quest.uncomplete({ questKey: "daily_grind" })).rejects.toThrow();
+  });
+});
+
+// ─── QUESTS/BADGES metadata ─────────────────────────────────────────────────────
 describe("QUESTS constant", () => {
   it("has exactly 5 quests", () => {
     expect(QUESTS).toHaveLength(5);
