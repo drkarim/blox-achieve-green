@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM user_quests; DELETE FROM user_badges; UPDATE user_progress SET xp = 0, level = 1, totalXp = 0;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4WCTxouo2fox5uz.root --database 64uYYvVzujRiS85wSAziy4 --execute DELETE FROM user_quests; DELETE FROM user_badges; UPDATE user_progress SET xp = 0, level = 1, totalXp = 0;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 98
+}

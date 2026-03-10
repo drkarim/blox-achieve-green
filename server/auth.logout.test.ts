@@ -49,9 +49,11 @@ describe("auth.logout", () => {
     const result = await caller.auth.logout();
 
     expect(result).toEqual({ success: true });
-    expect(clearedCookies).toHaveLength(1);
-    expect(clearedCookies[0]?.name).toBe(COOKIE_NAME);
-    expect(clearedCookies[0]?.options).toMatchObject({
+    // Logout clears both the main session cookie and the local_session cookie
+    expect(clearedCookies.length).toBeGreaterThanOrEqual(1);
+    expect(clearedCookies.some(c => c.name === COOKIE_NAME)).toBe(true);
+    const mainCookie = clearedCookies.find(c => c.name === COOKIE_NAME);
+    expect(mainCookie?.options).toMatchObject({
       maxAge: -1,
       secure: true,
       sameSite: "none",

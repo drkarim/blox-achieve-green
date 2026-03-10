@@ -1,11 +1,10 @@
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, userBadges, userProgress, userQuests, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -18,75 +17,184 @@ export async function getDb() {
   return _db;
 }
 
+// ─── User helpers ────────────────────────────────────────────────────────────
+
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
+  if (!user.openId) throw new Error("User openId is required for upsert");
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
+  if (!db) { console.warn("[Database] Cannot upsert user: database not available"); return; }
 
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
+  const values: InsertUser = { openId: user.openId };
+  const updateSet: Record<string, unknown> = {};
+  const textFields = ["name", "email", "loginMethod"] as const;
+  type TextField = (typeof textFields)[number];
+  const assignNullable = (field: TextField) => {
+    const value = user[field];
+    if (value === undefined) return;
+    const normalized = value ?? null;
+    values[field] = normalized;
+    updateSet[field] = normalized;
+  };
+  textFields.forEach(assignNullable);
+  if (user.lastSignedIn !== undefined) { values.lastSignedIn = user.lastSignedIn; updateSet.lastSignedIn = user.lastSignedIn; }
+  if (user.role !== undefined) { values.role = user.role; updateSet.role = user.role; }
+  else if (user.openId === ENV.ownerOpenId) { values.role = 'admin'; updateSet.role = 'admin'; }
+  if (!values.lastSignedIn) values.lastSignedIn = new Date();
+  if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
 
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
 }
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function getUserByUsername(username: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createLocalUser(username: string, passwordHash: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const openId = `local_${username}_${Date.now()}`;
+  await db.insert(users).values({
+    openId,
+    username,
+    passwordHash,
+    name: username,
+    loginMethod: "local",
+    lastSignedIn: new Date(),
+  });
+  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result[0];
+}
+
+// ─── Progress helpers ─────────────────────────────────────────────────────────
+
+export async function getUserProgress(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(userProgress).where(eq(userProgress.userId, userId)).limit(1);
+  if (result.length > 0) return result[0];
+  // Auto-create progress row
+  await db.insert(userProgress).values({ userId, xp: 0, level: 1, totalXp: 0 });
+  const created = await db.select().from(userProgress).where(eq(userProgress.userId, userId)).limit(1);
+  return created[0] ?? null;
+}
+
+export async function addXp(userId: number, amount: number): Promise<{ xp: number; level: number; leveledUp: boolean; newLevel: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const progress = await getUserProgress(userId);
+  if (!progress) throw new Error("Progress not found");
+
+  const XP_PER_LEVEL = 500;
+  let newXp = progress.xp + amount;
+  let newLevel = progress.level;
+  let leveledUp = false;
+
+  if (newXp >= XP_PER_LEVEL) {
+    newXp = newXp - XP_PER_LEVEL;
+    newLevel = progress.level + 1;
+    leveledUp = true;
+  }
+
+  const newTotalXp = progress.totalXp + amount;
+
+  await db.update(userProgress)
+    .set({ xp: newXp, level: newLevel, totalXp: newTotalXp })
+    .where(eq(userProgress.userId, userId));
+
+  return { xp: newXp, level: newLevel, leveledUp, newLevel };
+}
+
+// ─── Quest helpers ────────────────────────────────────────────────────────────
+
+// Get today's date as a Date object at local midnight (avoids UTC offset issues)
+function getTodayDate(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+export async function getTodayCompletedQuests(userId: number): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const today = getTodayDate();
+  const result = await db.select().from(userQuests)
+    .where(and(
+      eq(userQuests.userId, userId),
+      sql`DATE(${userQuests.completedDate}) = DATE(${today.toISOString().split('T')[0]})`
+    ));
+  return result.map(r => r.questKey);
+}
+
+export async function completeQuest(userId: number, questKey: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const today = getTodayDate();
+  const todayStr = today.toISOString().split('T')[0];
+  // Check if already completed today
+  const existing = await db.select().from(userQuests)
+    .where(and(
+      eq(userQuests.userId, userId),
+      eq(userQuests.questKey, questKey),
+      sql`DATE(${userQuests.completedDate}) = DATE(${todayStr})`
+    ));
+  if (existing.length > 0) return false; // already done
+  // Store as local date (not UTC midnight) to avoid timezone shift
+  await db.insert(userQuests).values({ userId, questKey, completedDate: today });
+  return true;
+}
+
+// ─── Badge helpers ────────────────────────────────────────────────────────────
+
+export async function getUserBadges(userId: number): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.select().from(userBadges).where(eq(userBadges.userId, userId));
+  return result.map(r => r.badgeKey);
+}
+
+export async function unlockBadge(userId: number, badgeKey: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const existing = await db.select().from(userBadges)
+    .where(and(eq(userBadges.userId, userId), eq(userBadges.badgeKey, badgeKey)));
+  if (existing.length > 0) return false;
+  await db.insert(userBadges).values({ userId, badgeKey });
+  return true;
+}
+
+// Check and auto-unlock badges based on progress
+export async function checkAndUnlockBadges(userId: number): Promise<string[]> {
+  const progress = await getUserProgress(userId);
+  if (!progress) return [];
+  const existing = await getUserBadges(userId);
+  const newBadges: string[] = [];
+
+  const badgeRules: { key: string; condition: boolean }[] = [
+    { key: "first_quest",   condition: progress.totalXp >= 50 },
+    { key: "level_2",       condition: progress.level >= 2 },
+    { key: "level_5",       condition: progress.level >= 5 },
+    { key: "level_10",      condition: progress.level >= 10 },
+    { key: "xp_500",        condition: progress.totalXp >= 500 },
+    { key: "xp_1000",       condition: progress.totalXp >= 1000 },
+    { key: "xp_5000",       condition: progress.totalXp >= 5000 },
+    { key: "grinder",       condition: progress.totalXp >= 2500 },
+  ];
+
+  for (const rule of badgeRules) {
+    if (rule.condition && !existing.includes(rule.key)) {
+      await unlockBadge(userId, rule.key);
+      newBadges.push(rule.key);
+    }
+  }
+  return newBadges;
+}

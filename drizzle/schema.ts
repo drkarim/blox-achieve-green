@@ -1,17 +1,7 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, date, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -20,9 +10,43 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  // Custom auth fields for username/password login
+  username: varchar("username", { length: 32 }).unique(),
+  passwordHash: varchar("passwordHash", { length: 256 }),
 });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// Tracks XP and level for each user
+export const userProgress = mysqlTable("user_progress", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  xp: int("xp").default(0).notNull(),
+  level: int("level").default(1).notNull(),
+  totalXp: int("totalXp").default(0).notNull(), // all-time XP for badge unlocks
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserProgress = typeof userProgress.$inferSelect;
+
+// Daily quest completion tracking (resets each day)
+export const userQuests = mysqlTable("user_quests", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  questKey: varchar("questKey", { length: 64 }).notNull(), // e.g. "daily_grind"
+  completedDate: date("completedDate").notNull(), // YYYY-MM-DD
+  completedAt: timestamp("completedAt").defaultNow().notNull(),
+});
+
+export type UserQuest = typeof userQuests.$inferSelect;
+
+// Badge unlock tracking
+export const userBadges = mysqlTable("user_badges", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  badgeKey: varchar("badgeKey", { length: 64 }).notNull(),
+  unlockedAt: timestamp("unlockedAt").defaultNow().notNull(),
+});
+
+export type UserBadge = typeof userBadges.$inferSelect;

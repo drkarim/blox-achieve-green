@@ -3,122 +3,70 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─── Roblox-Inspired Theme ─────────────────────────────────────────────── */
 @theme inline {
+  --radius: 0.75rem;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: 'Fredoka', 'Bangers', system-ui, sans-serif;
+
+  /* Neon Green palette */
+  --color-background: oklch(0.11 0.005 145);
+  --color-foreground: oklch(0.97 0.01 145);
+  --color-card: oklch(0.16 0.01 145);
+  --color-card-foreground: oklch(0.97 0.01 145);
+  --color-popover: oklch(0.16 0.01 145);
+  --color-popover-foreground: oklch(0.97 0.01 145);
+  --color-primary: oklch(0.72 0.22 142);
+  --color-primary-foreground: oklch(0.1 0.02 145);
+  --color-secondary: oklch(0.28 0.12 142);
+  --color-secondary-foreground: oklch(0.97 0.01 145);
+  --color-muted: oklch(0.22 0.01 145);
+  --color-muted-foreground: oklch(0.65 0.02 145);
+  --color-accent: oklch(0.72 0.22 142);
+  --color-accent-foreground: oklch(0.1 0.02 145);
+  --color-destructive: oklch(0.6 0.22 25);
+  --color-destructive-foreground: oklch(0.97 0.01 145);
+  --color-border: oklch(0.28 0.08 142);
+  --color-input: oklch(0.22 0.01 145);
+  --color-ring: oklch(0.72 0.22 142);
+  --color-chart-1: oklch(0.72 0.22 142);
+  --color-chart-2: oklch(0.55 0.20 142);
+  --color-chart-3: oklch(0.40 0.15 142);
+  --color-chart-4: oklch(0.28 0.12 142);
+  --color-chart-5: oklch(0.18 0.06 142);
+  --color-sidebar: oklch(0.14 0.01 145);
+  --color-sidebar-foreground: oklch(0.97 0.01 145);
+  --color-sidebar-primary: oklch(0.72 0.22 142);
+  --color-sidebar-primary-foreground: oklch(0.1 0.02 145);
+  --color-sidebar-accent: oklch(0.22 0.06 142);
+  --color-sidebar-accent-foreground: oklch(0.97 0.01 145);
+  --color-sidebar-border: oklch(0.28 0.08 142);
+  --color-sidebar-ring: oklch(0.72 0.22 142);
 }
 
-:root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
-}
 
-.dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
-}
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Fredoka', 'Bangers', system-ui, sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, oklch(0.20 0.06 142 / 0.3) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, oklch(0.18 0.04 142 / 0.2) 0%, transparent 50%);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Fredoka', 'Bangers', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -134,44 +82,228 @@
 }
 
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
+    padding-left: 1rem;
     padding-right: 1rem;
+    max-width: 1100px;
   }
-
-  .flex {
-    min-height: 0;
-    min-width: 0;
-  }
-
+  .flex { min-height: 0; min-width: 0; }
   @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
-      padding-right: 1.5rem;
-    }
+    .container { padding-left: 1.5rem; padding-right: 1.5rem; }
+  }
+  @media (min-width: 1024px) {
+    .container { padding-left: 2rem; padding-right: 2rem; }
   }
 
-  @media (min-width: 1024px) {
-    .container {
-      padding-left: 2rem; /* 32px - desktop padding */
-      padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
-    }
+  /* ─── Roblox-Style 3D Button ──────────────────────────────────────────── */
+  .roblox-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
+    padding: 0.65rem 1.5rem;
+    border-radius: 12px;
+    border: 3px solid oklch(0.28 0.12 142);
+    background: linear-gradient(180deg, oklch(0.78 0.24 142) 0%, oklch(0.65 0.22 142) 100%);
+    color: oklch(0.1 0.02 145);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.12s ease;
+    box-shadow: 0 6px 0 oklch(0.35 0.15 142), 0 8px 12px oklch(0 0 0 / 0.4);
+    text-shadow: 0 1px 0 oklch(0.9 0.1 142 / 0.4);
+    user-select: none;
+    white-space: nowrap;
   }
+  .roblox-btn:hover:not(:disabled) {
+    transform: scale(1.06) translateY(-2px);
+    box-shadow: 0 8px 0 oklch(0.35 0.15 142), 0 12px 20px oklch(0 0 0 / 0.5);
+    background: linear-gradient(180deg, oklch(0.82 0.25 142) 0%, oklch(0.70 0.23 142) 100%);
+  }
+  .roblox-btn:active:not(:disabled) {
+    transform: scale(0.96) translateY(4px);
+    box-shadow: 0 2px 0 oklch(0.35 0.15 142), 0 3px 6px oklch(0 0 0 / 0.3);
+  }
+  .roblox-btn:disabled {
+    background: linear-gradient(180deg, oklch(0.45 0.04 145) 0%, oklch(0.35 0.03 145) 100%);
+    border-color: oklch(0.30 0.02 145);
+    color: oklch(0.55 0.02 145);
+    box-shadow: 0 3px 0 oklch(0.25 0.02 145);
+    cursor: not-allowed;
+    transform: none;
+  }
+  .roblox-btn-sm { font-size: 0.9rem; padding: 0.45rem 1rem; border-radius: 8px; }
+  .roblox-btn-secondary {
+    background: linear-gradient(180deg, oklch(0.30 0.10 142) 0%, oklch(0.22 0.08 142) 100%);
+    border-color: oklch(0.22 0.08 142);
+    color: oklch(0.97 0.01 145);
+    box-shadow: 0 6px 0 oklch(0.15 0.06 142), 0 8px 12px oklch(0 0 0 / 0.4);
+    text-shadow: none;
+  }
+  .roblox-btn-secondary:hover:not(:disabled) {
+    background: linear-gradient(180deg, oklch(0.35 0.12 142) 0%, oklch(0.27 0.10 142) 100%);
+  }
+  .roblox-btn-danger {
+    background: linear-gradient(180deg, oklch(0.65 0.22 25) 0%, oklch(0.52 0.20 25) 100%);
+    border-color: oklch(0.38 0.15 25);
+    color: oklch(0.97 0 0);
+    box-shadow: 0 6px 0 oklch(0.35 0.15 25), 0 8px 12px oklch(0 0 0 / 0.4);
+    text-shadow: none;
+  }
+  .roblox-btn-danger:hover:not(:disabled) {
+    background: linear-gradient(180deg, oklch(0.70 0.23 25) 0%, oklch(0.58 0.21 25) 100%);
+  }
+
+  /* ─── Roblox Card ─────────────────────────────────────────────────────── */
+  .roblox-card {
+    background: linear-gradient(160deg, oklch(0.18 0.02 145) 0%, oklch(0.14 0.015 145) 100%);
+    border: 3px solid oklch(0.28 0.10 142);
+    border-radius: 16px;
+    box-shadow: 0 0 0 1px oklch(0.40 0.15 142 / 0.2), 0 8px 24px oklch(0 0 0 / 0.5), inset 0 1px 0 oklch(0.50 0.15 142 / 0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  .roblox-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, oklch(0.72 0.22 142 / 0.6), transparent);
+  }
+  .roblox-card-completed {
+    border-color: oklch(0.50 0.12 142);
+    opacity: 0.7;
+  }
+
+  /* ─── XP Bar ──────────────────────────────────────────────────────────── */
+  .xp-bar-container {
+    background: oklch(0.15 0.02 145);
+    border: 3px solid oklch(0.28 0.10 142);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    height: 32px;
+    box-shadow: inset 0 2px 6px oklch(0 0 0 / 0.5), 0 0 12px oklch(0.72 0.22 142 / 0.2);
+  }
+  .xp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, oklch(0.55 0.20 142) 0%, oklch(0.78 0.24 142) 60%, oklch(0.90 0.20 142) 100%);
+    border-radius: 999px;
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    box-shadow: 0 0 16px oklch(0.72 0.22 142 / 0.7), inset 0 1px 0 oklch(1 0 0 / 0.3);
+  }
+  .xp-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 8px; right: 8px;
+    height: 6px;
+    background: oklch(1 0 0 / 0.25);
+    border-radius: 999px;
+  }
+  .xp-bar-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: oklch(0.97 0.01 145);
+    text-shadow: 0 1px 3px oklch(0 0 0 / 0.8);
+    letter-spacing: 0.05em;
+    z-index: 1;
+  }
+
+  /* ─── Input ───────────────────────────────────────────────────────────── */
+  .roblox-input {
+    background: oklch(0.15 0.02 145);
+    border: 3px solid oklch(0.28 0.10 142);
+    border-radius: 10px;
+    color: oklch(0.97 0.01 145);
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 500;
+    padding: 0.65rem 1rem;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .roblox-input:focus {
+    border-color: oklch(0.72 0.22 142);
+    box-shadow: 0 0 0 3px oklch(0.72 0.22 142 / 0.25), 0 0 12px oklch(0.72 0.22 142 / 0.15);
+  }
+  .roblox-input::placeholder { color: oklch(0.45 0.03 145); }
+
+  /* ─── Badges ──────────────────────────────────────────────────────────── */
+  .badge-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 1rem 0.75rem;
+    border-radius: 12px;
+    border: 2px solid oklch(0.25 0.05 145);
+    background: oklch(0.14 0.01 145);
+    transition: all 0.3s ease;
+    text-align: center;
+  }
+  .badge-item.unlocked {
+    border-color: oklch(0.72 0.22 142);
+    background: oklch(0.16 0.04 142);
+    box-shadow: 0 0 16px oklch(0.72 0.22 142 / 0.3), inset 0 0 8px oklch(0.72 0.22 142 / 0.1);
+  }
+  .badge-item.unlocked:hover {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 0 24px oklch(0.72 0.22 142 / 0.5);
+  }
+  .badge-icon { font-size: 2rem; filter: grayscale(1) brightness(0.4); transition: filter 0.3s ease; }
+  .badge-item.unlocked .badge-icon { filter: none; animation: badge-glow 2s ease-in-out infinite alternate; }
+  @keyframes badge-glow {
+    from { filter: drop-shadow(0 0 4px oklch(0.72 0.22 142 / 0.6)); }
+    to   { filter: drop-shadow(0 0 10px oklch(0.72 0.22 142 / 1)); }
+  }
+
+  /* ─── Level-Up Overlay ────────────────────────────────────────────────── */
+  .levelup-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: oklch(0 0 0 / 0.75);
+    animation: fadeIn 0.3s ease;
+  }
+  .levelup-box { text-align: center; animation: levelup-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes levelup-pop {
+    from { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ─── Misc ────────────────────────────────────────────────────────────── */
+  .neon-text {
+    color: oklch(0.72 0.22 142);
+    text-shadow: 0 0 10px oklch(0.72 0.22 142 / 0.6), 0 0 20px oklch(0.72 0.22 142 / 0.3);
+  }
+  .panel-header {
+    background: linear-gradient(135deg, oklch(0.22 0.10 142) 0%, oklch(0.18 0.06 142) 100%);
+    border-bottom: 3px solid oklch(0.35 0.14 142);
+    padding: 1rem 1.5rem;
+    border-radius: 12px 12px 0 0;
+  }
+  .xp-flash { animation: xp-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  @keyframes xp-pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: oklch(0.13 0.01 145); }
+  ::-webkit-scrollbar-thumb { background: oklch(0.30 0.10 142); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.50 0.16 142); }
 }

@@ -1,0 +1,17 @@
+{
+  "query": "SELECT * FROM user_quests ORDER BY completedAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 4WCTxouo2fox5uz.root --database 64uYYvVzujRiS85wSAziy4 --execute SELECT * FROM user_quests ORDER BY completedAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "1",
+      "userId": "1",
+      "questKey": "daily_grind",
+      "completedDate": "2026-03-09",
+      "completedAt": "2026-03-10 22:03:22"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tquestKey\tcompletedDate\tcompletedAt\n1\t1\tdaily_grind\t2026-03-09\t2026-03-10 22:03:22\n",
+  "stderr": "",
+  "execution_time_ms": 68
+}
