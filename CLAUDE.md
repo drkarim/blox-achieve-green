@@ -98,8 +98,10 @@ Buttons must feel **chunky and 3D**. The `.roblox-btn` CSS class in `client/src/
 | `.roblox-btn-secondary` | Dark forest green | Logout, secondary actions |
 | `.roblox-btn-danger` | Red-orange | Destructive actions |
 | `.roblox-btn-undo` | Amber/orange | Undo quest completion (signals reversible action) |
+| `.roblox-btn-legendary` | Gold/green gradient + pulsing glow | Legendary quests (e.g. Offline Buff) |
+| `.roblox-btn-glitch` | Dark red/purple + flicker animation | Negative XP penalty quests (e.g. System Glitch) |
 
-The amber colour for `.roblox-btn-undo` is intentional — it is visually distinct from the green Complete button so the player immediately understands it reverses an action rather than completing one.
+The amber colour for `.roblox-btn-undo` is intentional — it is visually distinct from the green Complete button so the player immediately understands it reverses an action rather than completing one. The `.roblox-btn-glitch` is the **only non-green button** in the entire portal — this visual isolation communicates danger and corruption to the player.
 
 ### Badge Room Rules
 
@@ -123,21 +125,30 @@ The amber colour for `.roblox-btn-undo` is intentional — it is visually distin
 ### XP & Levelling
 
 ```
-Quest completed
+Quest completed (standard, xp > 0)
   → completeQuest(userId, questKey)   // returns false if already done today
-  → addXp(userId, 50)
-      xp += 50
-      totalXp += 50
+  → addXp(userId, quest.xp)           // e.g. 50 for standard, 80 for Offline Buff
+      xp += amount
+      totalXp += amount
       if xp >= 500:
           xp -= 500        // carry-over XP, does NOT reset to 0
           level += 1
           leveledUp = true
   → checkAndUnlockBadges(userId)
-  → return { xpGained: 50, xp, level, leveledUp, newLevel, newBadges }
+  → return { xpGained: quest.xp, xp, level, leveledUp, newLevel, newBadges }
+
+Quest completed (glitch, xp < 0 e.g. System Glitch = -30)
+  → completeQuest(userId, questKey)   // returns false if already activated today
+  → penaltyXp(userId, Math.abs(quest.xp))  // e.g. penaltyXp(userId, 30)
+      xp = max(0, xp - amount)         // floor at 0, never negative
+      totalXp unchanged                // penalty does NOT affect lifetime XP
+      level unchanged                  // no level-down on penalty
+  → NO badge check, NO level-up check
+  → return { xpGained: -30, xp, level, leveledUp: false, newBadges: [] }
 
 Quest undone (Undo button clicked)
-  → uncompleteQuest(userId, questKey)  // deletes today’s record; returns false if not found
-  → subtractXp(userId, 50)
+  → uncompleteQuest(userId, questKey)  // deletes today's record; returns false if not found
+  → subtractXp(userId, quest.xp)       // for standard quests; for glitch quests, addXp is called
       xp -= 50
       if xp < 0 and level > 1:
           level -= 1
@@ -146,14 +157,15 @@ Quest undone (Undo button clicked)
       if xp < 0 and level == 1:
           xp = 0                   // clamp at floor, never negative
       totalXp = max(0, totalXp - 50)
-  → return { xpLost: 50, xp, level, leveledDown }
+  → return { xpLost: quest.xp, xp, level, leveledDown }
 ```
 
-- **XP per quest:** 50 (all quests equal)
+- **XP per quest:** 50 for standard quests, **80 for Offline Buff (legendary)**, **−30 for System Glitch (glitch)**
 - **XP to level up:** 500 (configurable via `XP_PER_LEVEL` in `server/db.ts`)
 - **`xp`** tracks progress within the current level (0–499); resets on level-up.
-- **`totalXp`** is the lifetime cumulative total; used for XP-based badge thresholds. Never resets.
+- **`totalXp`** is the lifetime cumulative total; used for XP-based badge thresholds. Never resets. Penalty quests do not modify `totalXp`.
 - **Undo is day-scoped** — only quests completed *today* can be undone. Attempting to undo a quest from a previous day returns a CONFLICT error.
+- **Quest `variant` field** controls both the visual style and the XP code path: `"normal"` → standard green + `addXp`, `"legendary"` → pulsing glow + `addXp` (higher amount), `"glitch"` → red/purple + `penaltyXp` (no badge/level-up).
 
 ### Prestige System
 
@@ -206,8 +218,8 @@ level-up-portal/
 │           └── Dashboard.tsx   ← Main game screen (XP bar, quests, badge room)
 ├── server/
 │   ├── routers.ts              ← tRPC procedures + QUESTS/BADGES constants (exported)
-│   ├── db.ts                   ← All database query helpers (incl. uncompleteQuest, subtractXp, prestigeUser)
-│   ├── levelup.test.ts         ← 29 feature tests (auth, quests, XP, undo, prestige, badges)
+│   ├── db.ts                   ← All database query helpers (incl. uncompleteQuest, subtractXp, penaltyXp, prestigeUser)
+│   ├── levelup.test.ts         ← 39 feature tests (auth, quests, XP, undo, prestige, Offline Buff, System Glitch)
 │   └── auth.logout.test.ts     ← Template logout test (updated for dual-cookie logout)
 ├── drizzle/
 │   └── schema.ts               ← Database table definitions (source of truth)
@@ -248,6 +260,14 @@ When adding any new feature, follow this order:
 - Add a corresponding `subtract`/`decrement` helper with floor-clamping logic.
 - Add the tRPC procedure and mirror the optimistic update pattern from `quest.uncomplete` in `routers.ts`.
 - Use `.roblox-btn-undo` (amber) for the undo button so it is visually distinct from the primary action.
+
+**When adding a new quest type:**
+- Add an entry to the `QUESTS` array in `server/routers.ts` with a unique `key`, `label`, `description`, `icon`, `xp`, and `variant` field.
+- `variant: "normal"` — standard green button, `addXp` path.
+- `variant: "legendary"` — pulsing glow button (`.roblox-btn-legendary`), `addXp` path with higher XP value.
+- `variant: "glitch"` — red/purple button (`.roblox-btn-glitch`), `penaltyXp` path, no badge/level-up checks, XP floored at 0.
+- The `quest.complete` procedure in `routers.ts` branches on `quest.xp < 0` to call `penaltyXp` instead of `addXp`.
+- Add corresponding tests for the new quest's XP value, variant, and any special behaviour.
 
 **When adding a prestige-style reset:**
 - Always gate the action server-side (check a badge or threshold) — never trust the client.

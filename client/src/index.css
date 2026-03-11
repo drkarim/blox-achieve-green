@@ -171,6 +171,61 @@
     background: linear-gradient(180deg, oklch(0.74 0.17 65) 0%, oklch(0.62 0.15 65) 100%);
   }
 
+  /* Legendary button — gold/green gradient with pulsing glow for Offline Buff */
+  .roblox-btn-legendary {
+    background: linear-gradient(180deg, oklch(0.82 0.20 142) 0%, oklch(0.62 0.22 142) 50%, oklch(0.72 0.18 95) 100%);
+    border-color: oklch(0.55 0.18 95);
+    color: oklch(0.08 0.02 145);
+    box-shadow: 0 6px 0 oklch(0.42 0.15 95), 0 8px 12px oklch(0 0 0 / 0.4), 0 0 20px oklch(0.72 0.22 142 / 0.6);
+    text-shadow: 0 1px 0 oklch(0.90 0.10 95 / 0.5);
+    animation: legendary-pulse 2s ease-in-out infinite;
+  }
+  .roblox-btn-legendary:hover:not(:disabled) {
+    background: linear-gradient(180deg, oklch(0.88 0.22 142) 0%, oklch(0.70 0.24 142) 50%, oklch(0.80 0.20 95) 100%);
+    box-shadow: 0 6px 0 oklch(0.42 0.15 95), 0 8px 20px oklch(0 0 0 / 0.4), 0 0 35px oklch(0.72 0.22 142 / 0.9);
+  }
+  @keyframes legendary-pulse {
+    0%, 100% { box-shadow: 0 6px 0 oklch(0.42 0.15 95), 0 8px 12px oklch(0 0 0 / 0.4), 0 0 18px oklch(0.72 0.22 142 / 0.5); }
+    50%       { box-shadow: 0 6px 0 oklch(0.42 0.15 95), 0 8px 12px oklch(0 0 0 / 0.4), 0 0 32px oklch(0.72 0.22 142 / 0.9), 0 0 48px oklch(0.72 0.22 142 / 0.4); }
+  }
+
+  /* Legendary card border glow */
+  .roblox-card-legendary {
+    border-color: oklch(0.65 0.20 95);
+    box-shadow: 0 0 0 1px oklch(0.65 0.20 95 / 0.4), 0 8px 24px oklch(0 0 0 / 0.5), 0 0 24px oklch(0.72 0.22 142 / 0.3), inset 0 1px 0 oklch(0.65 0.20 95 / 0.25);
+    animation: legendary-card-pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes legendary-card-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px oklch(0.65 0.20 95 / 0.4), 0 8px 24px oklch(0 0 0 / 0.5), 0 0 18px oklch(0.72 0.22 142 / 0.25), inset 0 1px 0 oklch(0.65 0.20 95 / 0.25); }
+    50%       { box-shadow: 0 0 0 2px oklch(0.65 0.20 95 / 0.7), 0 8px 24px oklch(0 0 0 / 0.5), 0 0 36px oklch(0.72 0.22 142 / 0.55), inset 0 1px 0 oklch(0.65 0.20 95 / 0.4); }
+  }
+
+  /* Glitch button — dark red/purple for System Glitch (the only non-green element) */
+  .roblox-btn-glitch {
+    background: linear-gradient(180deg, oklch(0.42 0.20 320) 0%, oklch(0.30 0.18 320) 100%);
+    border-color: oklch(0.22 0.14 320);
+    color: oklch(0.92 0.04 320);
+    box-shadow: 0 6px 0 oklch(0.18 0.12 320), 0 8px 12px oklch(0 0 0 / 0.5);
+    text-shadow: 0 0 8px oklch(0.65 0.22 320 / 0.8);
+    animation: glitch-flicker 4s ease-in-out infinite;
+  }
+  .roblox-btn-glitch:hover:not(:disabled) {
+    background: linear-gradient(180deg, oklch(0.50 0.22 320) 0%, oklch(0.38 0.20 320) 100%);
+    box-shadow: 0 6px 0 oklch(0.18 0.12 320), 0 8px 20px oklch(0 0 0 / 0.5), 0 0 20px oklch(0.42 0.20 320 / 0.6);
+  }
+  @keyframes glitch-flicker {
+    0%, 90%, 100% { opacity: 1; }
+    92%           { opacity: 0.85; transform: translateX(1px); }
+    94%           { opacity: 1;    transform: translateX(-1px); }
+    96%           { opacity: 0.9;  transform: translateX(0); }
+  }
+
+  /* Glitch card border */
+  .roblox-card-glitch {
+    border-color: oklch(0.35 0.16 320);
+    box-shadow: 0 0 0 1px oklch(0.35 0.16 320 / 0.3), 0 8px 24px oklch(0 0 0 / 0.6), inset 0 1px 0 oklch(0.45 0.18 320 / 0.15);
+  }
+
   /* ─── Roblox Card ─────────────────────────────────────────────────────── */
   .roblox-card {
     background: linear-gradient(160deg, oklch(0.18 0.02 145) 0%, oklch(0.14 0.015 145) 100%);

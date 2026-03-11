@@ -156,15 +156,22 @@ function QuestCard({
   isCompleting,
   isUncompleting,
 }: {
-  quest: { key: string; label: string; description: string; icon: string; xp: number; completed: boolean };
+  quest: { key: string; label: string; description: string; icon: string; xp: number; variant?: string; completed: boolean };
   onComplete: (key: string) => void;
   onUncomplete: (key: string) => void;
   isCompleting: boolean;
   isUncompleting: boolean;
 }) {
   const isLoading = isCompleting || isUncompleting;
+  const isLegendary = quest.variant === "legendary";
+  const isGlitch = quest.variant === "glitch";
+  const cardClass = quest.completed
+    ? "roblox-card-completed"
+    : isLegendary ? "roblox-card-legendary"
+    : isGlitch    ? "roblox-card-glitch"
+    : "";
   return (
-    <div className={`roblox-card quest-card-enter p-5 flex items-center gap-4 ${quest.completed ? "roblox-card-completed" : ""}`}>
+    <div className={`roblox-card quest-card-enter p-5 flex items-center gap-4 ${cardClass}`}>
       {/* Icon */}
       <div style={{
         fontSize: "2.5rem",
@@ -209,11 +216,22 @@ function QuestCard({
           fontFamily: "'Fredoka', sans-serif",
           fontWeight: 700,
           fontSize: "0.85rem",
-          color: quest.completed ? "oklch(0.45 0.08 142)" : "oklch(0.72 0.22 142)",
+          color: quest.completed
+            ? "oklch(0.45 0.08 142)"
+            : isGlitch
+              ? "oklch(0.65 0.20 320)"
+              : isLegendary
+                ? "oklch(0.82 0.20 95)"
+                : "oklch(0.72 0.22 142)",
           marginTop: "4px",
           transition: "color 0.2s ease",
         }}>
-          {quest.completed ? `-${quest.xp} XP if undone` : `+${quest.xp} XP`}
+          {quest.completed
+            ? (isGlitch ? "Glitch activated today" : `-${quest.xp} XP if undone`)
+            : isGlitch
+              ? `-${Math.abs(quest.xp)} XP penalty`
+              : `+${quest.xp} XP`
+          }
         </div>
       </div>
 
@@ -230,11 +248,15 @@ function QuestCard({
           </button>
         ) : (
           <button
-            className="roblox-btn roblox-btn-sm"
+            className={`roblox-btn roblox-btn-sm ${
+              isGlitch    ? "roblox-btn-glitch"
+              : isLegendary ? "roblox-btn-legendary"
+              : ""
+            }`}
             onClick={() => onComplete(quest.key)}
             disabled={isLoading}
           >
-            {isCompleting ? "⏳" : "✔ Complete"}
+            {isCompleting ? "⏳" : isGlitch ? "⚠️ Activate" : "✔ Complete"}
           </button>
         )}
       </div>
@@ -331,7 +353,11 @@ export default function Dashboard() {
       utils.progress.get.invalidate();
       utils.badge.list.invalidate();
 
-      toast.success(`+${data.xpGained} XP earned! ⚡`, { duration: 2000 });
+      if (data.xpGained < 0) {
+        toast(`⚠️ System Glitch! ${data.xpGained} XP penalty applied.`, { duration: 2500 });
+      } else {
+        toast.success(`+${data.xpGained} XP earned! ⚡`, { duration: 2000 });
+      }
 
       if (data.newBadges && data.newBadges.length > 0) {
         data.newBadges.forEach((badgeKey: string) => {

@@ -51,3 +51,15 @@
 - [ ] Write prestige vitest tests
 - [ ] Update README.md and CLAUDE.md with prestige docs
 - [ ] Push to GitHub and save checkpoint
+
+## New Quest Types
+- [ ] Add "Power Down: The Offline Buff" quest (+80 XP, legendary pulsing glow) to QUESTS constant
+- [ ] Add "System Glitch" quest (-30 XP, red/purple button, floor-clamped at 0) to QUESTS constant
+- [ ] Handle negative XP quest logic in backend (floor-clamping at 0)
+- [ ] Add legendary-glow CSS class for Offline Buff card
+- [ ] Add glitch-btn CSS class (red/dark-purple) for System Glitch card
+- [ ] Update quest card rendering to handle negative XP display and special styles
+- [ ] Write tests for both new quest types
+- [ ] Update README.md and CLAUDE.md with new quest type documentation
+- [ ] Update roblox-green-portal-architect skill with new logic types
+- [ ] Push to GitHub and save checkpoint

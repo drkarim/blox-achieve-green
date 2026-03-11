@@ -14,19 +14,22 @@ import {
   getUserBadges,
   getUserByUsername,
   getUserProgress,
+  penaltyXp,
   prestigeUser,
   subtractXp,
   uncompleteQuest,
 } from "./db";
 import { sdk } from "./_core/sdk";
 
-// All 5 quests with metadata
+// All quests with metadata. xp can be positive (reward) or negative (penalty).
 export const QUESTS = [
-  { key: "daily_grind",      label: "Daily Grind",       description: "Start your day strong! Complete your morning routine.", icon: "⚡", xp: 50 },
-  { key: "homework_quest",   label: "Homework Quest",    description: "Conquer your homework and level up your brain!", icon: "📚", xp: 50 },
-  { key: "room_recon",       label: "Room Recon",        description: "Clean and organize your room like a pro.", icon: "🏠", xp: 50 },
-  { key: "reading_mission",  label: "Reading Mission",   description: "Read for at least 20 minutes today.", icon: "📖", xp: 50 },
-  { key: "custom_training",  label: "Custom Training",   description: "Exercise, practice, or learn something new!", icon: "🏋️", xp: 50 },
+  { key: "daily_grind",      label: "Daily Grind",                    description: "Start your day strong! Complete your morning routine.",    icon: "⚡",  xp: 50,  variant: "normal"    },
+  { key: "homework_quest",   label: "Homework Quest",                 description: "Conquer your homework and level up your brain!",           icon: "📚",  xp: 50,  variant: "normal"    },
+  { key: "room_recon",       label: "Room Recon",                     description: "Clean and organize your room like a pro.",                 icon: "🏠",  xp: 50,  variant: "normal"    },
+  { key: "reading_mission",  label: "Reading Mission",                description: "Read for at least 20 minutes today.",                     icon: "📖",  xp: 50,  variant: "normal"    },
+  { key: "custom_training",  label: "Custom Training",                description: "Exercise, practice, or learn something new!",             icon: "🏋️",  xp: 50,  variant: "normal"    },
+  { key: "offline_buff",     label: "Power Down: The Offline Buff",   description: "Completed at least 1 hour of screen-free time.",          icon: "🌿",  xp: 80,  variant: "legendary" },
+  { key: "system_glitch",    label: "System Glitch",                  description: "A corruption in the system. Activate at your own risk!",  icon: "💀",  xp: -30, variant: "glitch"    },
 ] as const;
 
 // All badges with metadata
@@ -151,8 +154,15 @@ export const appRouter = router({
           throw new TRPCError({ code: "CONFLICT", message: "Quest already completed today!" });
         }
 
-        const result = await addXp(ctx.user.id, quest.xp);
-        const newBadges = await checkAndUnlockBadges(ctx.user.id);
+        // Negative XP quests (e.g. System Glitch) use penaltyXp — floors at 0, no level-down
+        let result: { xp: number; level: number; leveledUp: boolean; newLevel: number };
+        if (quest.xp < 0) {
+          const penalty = await penaltyXp(ctx.user.id, Math.abs(quest.xp));
+          result = { xp: penalty.xp, level: penalty.level, leveledUp: false, newLevel: penalty.level };
+        } else {
+          result = await addXp(ctx.user.id, quest.xp);
+        }
+        const newBadges = quest.xp > 0 ? await checkAndUnlockBadges(ctx.user.id) : [];
 
         return {
           success: true,

@@ -43,18 +43,20 @@ Five daily quest cards are presented on the main dashboard, each representing a 
 
 Completed quests display an amber **"↩ Undo"** button in place of the Complete button. Clicking Undo removes the completion record from the database, subtracts the 50 XP, and instantly restores the quest to its incomplete state — again via optimistic updates so the UI responds before the server confirms. If the XP subtraction causes the player's current-level XP to go negative, the system automatically decrements the level and carries the remaining XP forward (e.g. undoing a quest at 30 XP on Level 2 drops to Level 1 at 480 XP). The XP hint on the card also updates to show **"-50 XP if undone"** while a quest is in the completed state, so the player always knows the consequence before clicking.
 
-| Quest | Description | XP |
-|---|---|---|
-| ⚡ Daily Grind | Start your day strong — complete your morning routine | +50 XP |
-| 📚 Homework Quest | Conquer your homework and level up your brain | +50 XP |
-| 🏠 Room Recon | Clean and organise your room like a pro | +50 XP |
-| 📖 Reading Mission | Read for at least 20 minutes today | +50 XP |
-| 🏋️ Custom Training | Exercise, practise, or learn something new | +50 XP |
+| Quest | Description | XP | Type |
+|---|---|---|---|
+| ⚡ Daily Grind | Start your day strong — complete your morning routine | +50 XP | Standard |
+| 📚 Homework Quest | Conquer your homework and level up your brain | +50 XP | Standard |
+| 🏠 Room Recon | Clean and organise your room like a pro | +50 XP | Standard |
+| 📖 Reading Mission | Read for at least 20 minutes today | +50 XP | Standard |
+| 🏋️ Custom Training | Exercise, practise, or learn something new | +50 XP | Standard |
+| 🌿 Power Down: The Offline Buff | Completed at least 1 hour of screen-free time | **+80 XP** | Legendary |
+| 💀 System Glitch | A corruption in the system. Activate at your own risk! | **−30 XP** | Glitch |
 
 Quests reset automatically every day at midnight. The system stores completions as SQL `DATE` values using local time components to prevent timezone drift.
 
 ### XP & Levelling System
-Each completed quest awards **+50 XP**. A high-contrast animated progress bar at the top of the screen shows current XP progress toward the next level threshold (500 XP). When the bar fills, a full-screen **LEVEL UP** overlay fires — complete with a burst of green confetti powered by `canvas-confetti` — and the player's level increments permanently. The system tracks both per-level XP (which resets on level-up) and lifetime total XP (which never resets and drives XP-based badge unlocks).
+Standard quests award **+50 XP** each. The legendary **Power Down: The Offline Buff** quest awards a boosted **+80 XP** for completing at least one hour of screen-free time — its card pulses with a continuous neon green glow animation to signal its special status. The **System Glitch** quest is the only non-green element in the entire portal: it subtracts **30 XP** as a penalty when activated, rendered in a dark red/purple with a glitch-flicker animation. XP is floored at 0 — activating the System Glitch when already at 0 XP has no further effect. The System Glitch does not trigger badge unlocks or level-ups, and its XP hint shows "−30 XP penalty" rather than a positive reward. A high-contrast animated progress bar at the top of the screen shows current XP progress toward the next level threshold (500 XP). When the bar fills, a full-screen **LEVEL UP** overlay fires — complete with a burst of green confetti powered by `canvas-confetti` — and the player's level increments permanently. The system tracks both per-level XP (which resets on level-up) and lifetime total XP (which never resets and drives XP-based badge unlocks).
 
 ### Badge Room
 Nine achievement badges are displayed in a grid at the bottom of the dashboard. Locked badges render in greyscale at reduced opacity. When a badge condition is met, it unlocks instantly: full colour returns, a neon green glow appears around the card, and a toast notification announces the unlock. Badges reward a mix of milestones — first quest completion, reaching specific levels, accumulating lifetime XP, and the ultimate **Prestige** achievement.
@@ -139,8 +141,8 @@ level-up-portal/
 │           └── Dashboard.tsx   # Main game screen
 ├── server/
 │   ├── routers.ts              # All tRPC procedures + QUESTS/BADGES constants
-│   ├── db.ts                   # Database query helpers (incl. uncompleteQuest, subtractXp, prestigeUser)
-│   ├── levelup.test.ts         # 29 feature tests (incl. quest undo + prestige suites)
+│   ├── db.ts                   # Database query helpers (incl. uncompleteQuest, subtractXp, penaltyXp, prestigeUser)
+│   ├── levelup.test.ts         # 39 feature tests (incl. quest undo, prestige, Offline Buff, System Glitch)
 │   └── auth.logout.test.ts     # Session/cookie tests
 ├── drizzle/
 │   └── schema.ts               # Database table definitions (source of truth)
@@ -218,13 +220,13 @@ pnpm drizzle-kit generate   # Generate migration SQL from schema changes
 
 ## Testing
 
-The project ships with **29 Vitest tests** covering all critical paths:
+The project ships with **39 Vitest tests** covering all critical paths:
 
 ```bash
 pnpm test
 ```
 
-Test coverage includes registration validation (duplicate usernames, password length, special characters), login authentication, quest listing and completion, XP award logic, level-up detection at the 500 XP threshold, **quest undo logic** (XP subtraction, level-down handling, CONFLICT when not completed today), **prestige logic** (XP God gate, prestigeCount increment, FORBIDDEN error without badge), badge unlock conditions, and the session cookie lifecycle. All tests mock the database layer and the session SDK so they run without a live database connection.
+Test coverage includes registration validation (duplicate usernames, password length, special characters), login authentication, quest listing and completion, XP award logic, level-up detection at the 500 XP threshold, **quest undo logic** (XP subtraction, level-down handling, CONFLICT when not completed today), **prestige logic** (XP God gate, prestigeCount increment, FORBIDDEN error without badge), badge unlock conditions, the session cookie lifecycle, **Offline Buff logic** (+80 XP award, level-up trigger, CONFLICT guard), and **System Glitch logic** (−30 XP via `penaltyXp`, floor-at-0 guarantee, no badge unlock, no level-up). All tests mock the database layer and the session SDK so they run without a live database connection.
 
 ---
 
@@ -232,7 +234,7 @@ Test coverage includes registration validation (duplicate usernames, password le
 
 The portal is designed to be easily adapted. The most common customisations are:
 
-**Change quest names or descriptions** — Edit the `QUESTS` array in `server/routers.ts`. Each quest has a `key`, `label`, `description`, `icon`, and `xp` field.
+**Change quest names or descriptions** — Edit the `QUESTS` array in `server/routers.ts`. Each quest has a `key`, `label`, `description`, `icon`, `xp`, and `variant` field. The `variant` field controls the visual style: `"normal"` (default green), `"legendary"` (pulsing neon glow, higher XP), or `"glitch"` (red/purple, negative XP penalty).
 
 **Adjust XP per quest or XP to level up** — Change the `xp` value on individual quests in `QUESTS`, or change the `XP_PER_LEVEL` constant in `server/db.ts` (currently `500`).
 
@@ -253,6 +255,8 @@ The portal is designed to be easily adapted. The most common customisations are:
 **Optimistic updates** — Both quest completion and quest undo use the `onMutate` / `onError` / `onSettled` tRPC mutation pattern. The quest card flips state instantly on click; if the server returns an error, the cache rolls back automatically. This makes the UI feel instantaneous even on slow connections.
 
 **Quest undo design** — The undo flow mirrors the complete flow in reverse: `uncompleteQuest()` deletes the `user_quests` record for today, then `subtractXp()` decrements the XP. If the subtraction would push `xp` below zero and the player is above Level 1, the system borrows from the previous level (`newXp = XP_PER_LEVEL + newXp`) and decrements the level. At Level 1, XP is clamped to 0 rather than going negative. `totalXp` (lifetime earnings) is also decremented but never goes below 0.
+
+**Negative XP quest design (System Glitch)** — Quests with `xp < 0` in the QUESTS array take a separate code path in `quest.complete`: instead of calling `addXp()`, the procedure calls `penaltyXp(userId, amount)`. The `penaltyXp` helper decrements `xp` (current-level XP) but clamps it at 0 — it never goes negative and never triggers a level-down. It also does not modify `totalXp` (lifetime earnings), since a penalty is not a real achievement. Badge checks and level-up checks are skipped entirely for negative XP quests. The Undo button on a System Glitch card restores the 30 XP via the standard `subtractXp` path in reverse (i.e. `addXp` is called with 30).
 
 **Prestige design** — `prestigeUser()` resets `xp` and `level` to 1 and increments `prestigeCount`, but deliberately leaves `totalXp` untouched. This means all XP-based badge thresholds remain unlocked after a prestige, and the player's lifetime achievement is preserved. The prestige gate (`badges.includes("xp_5000")`) is checked server-side in the `progress.prestige` tRPC procedure, not client-side, so it cannot be bypassed by manipulating the UI.
 
