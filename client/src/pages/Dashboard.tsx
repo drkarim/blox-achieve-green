@@ -549,16 +549,50 @@ export default function Dashboard() {
                   : `${completedCount}/${totalQuests} quests done today. Keep grinding!`}
               </p>
             </div>
-            <div style={{
-              background: "linear-gradient(135deg, oklch(0.20 0.08 142) 0%, oklch(0.15 0.05 142) 100%)",
-              border: "2px solid oklch(0.35 0.12 142)",
-              borderRadius: "12px",
-              padding: "0.75rem 1.25rem",
-              textAlign: "center",
-            }}>
-              <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.8rem", color: "oklch(0.55 0.05 145)", letterSpacing: "0.05em" }}>TOTAL XP</div>
-              <div style={{ fontFamily: "'Bangers', cursive", fontSize: "1.8rem", color: "oklch(0.72 0.22 142)", letterSpacing: "0.05em" }}>
-                {progress?.totalXp ?? 0}
+            {/* XP Breakdown: Today vs All-Time */}
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+              {/* Today's XP */}
+              <div style={{
+                background: "linear-gradient(135deg, oklch(0.18 0.10 142) 0%, oklch(0.13 0.06 142) 100%)",
+                border: "2px solid oklch(0.45 0.18 142)",
+                borderRadius: "12px",
+                padding: "0.75rem 1.25rem",
+                textAlign: "center",
+                minWidth: "110px",
+                position: "relative",
+              }}>
+                <div style={{
+                  position: "absolute", top: "-10px", left: "50%", transform: "translateX(-50%)",
+                  background: "oklch(0.55 0.22 142)", color: "#000", fontSize: "0.6rem",
+                  fontFamily: "'Fredoka', sans-serif", fontWeight: 700, letterSpacing: "0.08em",
+                  padding: "1px 8px", borderRadius: "99px", whiteSpace: "nowrap",
+                }}>TODAY</div>
+                <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.75rem", color: "oklch(0.55 0.05 145)", letterSpacing: "0.05em", marginTop: "4px" }}>XP EARNED</div>
+                <div style={{ fontFamily: "'Bangers', cursive", fontSize: "2rem", color: "oklch(0.80 0.26 142)", letterSpacing: "0.05em", lineHeight: 1 }}>
+                  +{progress?.xpToday ?? 0}
+                </div>
+              </div>
+              {/* All-Time Total XP */}
+              <div style={{
+                background: "linear-gradient(135deg, oklch(0.20 0.08 142) 0%, oklch(0.15 0.05 142) 100%)",
+                border: "2px solid oklch(0.35 0.12 142)",
+                borderRadius: "12px",
+                padding: "0.75rem 1.25rem",
+                textAlign: "center",
+                minWidth: "110px",
+                position: "relative",
+              }}>
+                <div style={{
+                  position: "absolute", top: "-10px", left: "50%", transform: "translateX(-50%)",
+                  background: "oklch(0.30 0.10 142)", color: "oklch(0.75 0.18 142)", fontSize: "0.6rem",
+                  fontFamily: "'Fredoka', sans-serif", fontWeight: 700, letterSpacing: "0.08em",
+                  padding: "1px 8px", borderRadius: "99px", whiteSpace: "nowrap",
+                  border: "1px solid oklch(0.40 0.14 142)",
+                }}>ALL-TIME</div>
+                <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.75rem", color: "oklch(0.55 0.05 145)", letterSpacing: "0.05em", marginTop: "4px" }}>TOTAL XP</div>
+                <div style={{ fontFamily: "'Bangers', cursive", fontSize: "2rem", color: "oklch(0.72 0.22 142)", letterSpacing: "0.05em", lineHeight: 1 }}>
+                  {progress?.totalXp ?? 0}
+                </div>
               </div>
             </div>
           </div>
@@ -637,22 +671,40 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ─── Stats Footer ───────────────────────────────────────────────────── */}        <div className="grid grid-cols-3 gap-4">
-          {[
-            { label: "Level", value: progress?.level ?? 1, icon: "⭐" },
-            { label: "Total XP", value: progress?.totalXp ?? 0, icon: "⚡" },
-            { label: "Badges", value: badges?.filter(b => b.unlocked).length ?? 0, icon: "🏆" },
-          ].map(stat => (
-            <div key={stat.label} className="roblox-card p-4 text-center">
-              <div style={{ fontSize: "1.8rem" }}>{stat.icon}</div>
-              <div style={{ fontFamily: "'Bangers', cursive", fontSize: "2rem", color: "oklch(0.72 0.22 142)", letterSpacing: "0.05em" }}>
-                {stat.value}
-              </div>
-              <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.85rem", color: "oklch(0.55 0.05 145)" }}>
-                {stat.label}
-              </div>
+        {/* ─── Stats Footer ───────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {/* Level */}
+          <div className="roblox-card p-4 text-center">
+            <div style={{ fontSize: "1.8rem" }}>⭐</div>
+            <div style={{ fontFamily: "'Bangers', cursive", fontSize: "2rem", color: "oklch(0.72 0.22 142)", letterSpacing: "0.05em" }}>
+              {progress?.level ?? 1}
             </div>
-          ))}
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.85rem", color: "oklch(0.55 0.05 145)" }}>Level</div>
+          </div>
+          {/* Today's XP */}
+          <div className="roblox-card p-4 text-center" style={{ border: "2px solid oklch(0.45 0.18 142)" }}>
+            <div style={{ fontSize: "1.8rem" }}>🌟</div>
+            <div style={{ fontFamily: "'Bangers', cursive", fontSize: "2rem", color: "oklch(0.80 0.26 142)", letterSpacing: "0.05em" }}>
+              +{progress?.xpToday ?? 0}
+            </div>
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.85rem", color: "oklch(0.55 0.05 145)" }}>Today's XP</div>
+          </div>
+          {/* All-Time Total XP */}
+          <div className="roblox-card p-4 text-center">
+            <div style={{ fontSize: "1.8rem" }}>⚡</div>
+            <div style={{ fontFamily: "'Bangers', cursive", fontSize: "2rem", color: "oklch(0.72 0.22 142)", letterSpacing: "0.05em" }}>
+              {progress?.totalXp ?? 0}
+            </div>
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.85rem", color: "oklch(0.55 0.05 145)" }}>Total XP</div>
+          </div>
+          {/* Badges */}
+          <div className="roblox-card p-4 text-center">
+            <div style={{ fontSize: "1.8rem" }}>🏆</div>
+            <div style={{ fontFamily: "'Bangers', cursive", fontSize: "2rem", color: "oklch(0.72 0.22 142)", letterSpacing: "0.05em" }}>
+              {badges?.filter(b => b.unlocked).length ?? 0}
+            </div>
+            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.85rem", color: "oklch(0.55 0.05 145)" }}>Badges</div>
+          </div>
         </div>
       </div>
     </div>

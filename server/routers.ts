@@ -180,10 +180,17 @@ export const appRouter = router({
     get: protectedProcedure.query(async ({ ctx }) => {
       const progress = await getUserProgress(ctx.user.id);
       const badges = await getUserBadges(ctx.user.id);
+      // Compute xpToday: sum XP from today's completed quests (positive quests only — glitch penalties are not "earned" XP)
+      const completedTodayKeys = await getTodayCompletedQuests(ctx.user.id);
+      const xpToday = completedTodayKeys.reduce((sum, key) => {
+        const quest = QUESTS.find(q => q.key === key);
+        return sum + (quest && quest.xp > 0 ? quest.xp : 0);
+      }, 0);
       return {
         xp: progress?.xp ?? 0,
         level: progress?.level ?? 1,
         totalXp: progress?.totalXp ?? 0,
+        xpToday,
         prestigeCount: progress?.prestigeCount ?? 0,
         xpToNextLevel: 500,
         badges,

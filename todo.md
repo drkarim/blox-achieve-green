@@ -63,3 +63,9 @@
 - [ ] Update README.md and CLAUDE.md with new quest type documentation
 - [ ] Update roblox-green-portal-architect skill with new logic types
 - [ ] Push to GitHub and save checkpoint
+
+## XP Breakdown (Today vs All-Time)
+- [ ] Add xpToday calculation to progress.get (sum XP from today's completed positive quests)
+- [ ] Update welcome banner: split into today XP vs all-time XP prominently
+- [ ] Update stats footer: 4 cards — Level, Today XP, Total XP, Badges
+- [ ] Push to GitHub and save checkpoint
