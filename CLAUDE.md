@@ -219,8 +219,8 @@ level-up-portal/
 │           └── Dashboard.tsx   ← Main game screen (XP bar, quests, badge room)
 ├── server/
 │   ├── routers.ts              ← tRPC procedures + QUESTS/BADGES constants (exported)
-│   ├── db.ts                   ← All database query helpers (incl. uncompleteQuest, subtractXp, penaltyXp, prestigeUser)
-│   ├── levelup.test.ts         ← 39 feature tests (auth, quests, XP, undo, prestige, Offline Buff, System Glitch, xpToday)
+│   ├── db.ts                   ← All database query helpers (incl. uncompleteQuest, subtractXp, penaltyXp, prestigeUser, getXpHistory)
+│   ├── levelup.test.ts         ← 44 feature tests (auth, quests, XP, undo, prestige, Offline Buff, System Glitch, xpToday, xpHistory)
 │   └── auth.logout.test.ts     ← Template logout test (updated for dual-cookie logout)
 ├── drizzle/
 │   └── schema.ts               ← Database table definitions (source of truth)
@@ -262,6 +262,14 @@ When adding any new feature, follow this order:
 - Display it prominently in the welcome banner (pill/badge) AND in the stats footer card.
 - Use a visually distinct border or colour to differentiate "today" from "all-time" at a glance.
 - Exclude penalty/negative-XP actions from "earned" metrics — they are not achievements.
+
+**When adding a time-series chart (like the 7-day XP history):**
+- Add a dedicated `get*History(userId)` helper in `server/db.ts` that queries the relevant table, groups by date, and returns an array of `{ date: string, value: number }` objects.
+- Add a dedicated `progress.*History` tRPC `protectedProcedure` in `server/routers.ts` — do NOT fold it into `progress.get` to keep the response payload small.
+- Use **Recharts** (already in the project) for all chart rendering. Import `BarChart`, `Bar`, `XAxis`, `YAxis`, `Tooltip`, `ResponsiveContainer` from `recharts`.
+- Apply the TMNT colour palette: today's bar = `#32CD32` (neon lime), past days with data = `#228B22` (medium green), zero-XP days = `#1a2a1a` (dark surface). Never use default Recharts blue.
+- Always include an empty-state message (e.g. "No XP earned this week yet") when the data array is empty or all values are zero.
+- Write tests for: correct array length, per-day values, zero-day handling, empty array, and auth guard.
 
 **When adding a reversible action (like the quest undo):**
 - Add a `remove`/`delete` DB helper that is day-scoped or otherwise guarded against accidental data loss.

@@ -91,6 +91,12 @@ The stats footer below the quest list has expanded from three cards to four: **�
 
 The `xpToday` value is computed server-side in the `progress.get` tRPC procedure by cross-referencing today's completed quest keys with the `QUESTS` constant. Only positive-XP quests are counted — System Glitch penalties are deliberately excluded, since a penalty is not "earned" XP.
 
+### 7-Day XP History Chart
+
+A **Recharts bar chart** sits below the stats footer on the dashboard, giving the player a visual snapshot of their XP output over the last 7 days. Each bar represents one calendar day. Today's bar is rendered in bright neon green (`#32CD32`) to stand out at a glance; past days with XP earned appear in medium green, and zero-XP days render as dark grey placeholders so the full 7-day window is always visible. A custom dark-themed tooltip shows the exact date and XP value on hover. If the player has no history yet, a friendly empty-state message appears instead of an empty chart.
+
+The chart data is powered by a dedicated `progress.xpHistory` tRPC procedure, which calls the `getXpHistory(userId)` DB helper. That helper queries the `user_quests` table, groups completions by `completedDate`, and sums the XP for each day — including negative-XP System Glitch activations, so the chart shows net daily XP rather than just positive rewards. The result is a 7-entry array (one per day) that the frontend maps directly to Recharts `BarChart` data.
+
 ### Full Persistence
 All progress — current level, XP, completed quests, and unlocked badges — is stored in a MySQL database via Drizzle ORM. Refreshing the page, logging out, or returning the next day never loses progress. Quest completions are day-scoped so the same quest can be completed again tomorrow.
 
@@ -152,8 +158,8 @@ level-up-portal/
 ├── server/
 │   ├── routers.ts              # All tRPC procedures + QUESTS/BADGES constants
 │   ├── db.ts                   # Database query helpers (incl. uncompleteQuest, subtractXp, penaltyXp, prestigeUser)
-│   ├── levelup.test.ts         # 39 feature tests (incl. quest undo, prestige, Offline Buff, System Glitch)
-│   └── auth.logout.test.ts     # Session/cookie tests
+    ├── levelup.test.ts         # 44 feature tests (incl. quest undo, prestige, Offline Buff, System Glitch, xpHistory)
+    └── auth.logout.test.ts     # Session/cookie tests
 ├── drizzle/
 │   └── schema.ts               # Database table definitions (source of truth)
 ├── shared/
@@ -230,13 +236,13 @@ pnpm drizzle-kit generate   # Generate migration SQL from schema changes
 
 ## Testing
 
-The project ships with **39 Vitest tests** covering all critical paths:
+The project ships with **44 Vitest tests** covering all critical paths:
 
 ```bash
 pnpm test
 ```
 
-Test coverage includes registration validation (duplicate usernames, password length, special characters), login authentication, quest listing and completion, XP award logic, level-up detection at the 500 XP threshold, **quest undo logic** (XP subtraction, level-down handling, CONFLICT when not completed today), **prestige logic** (XP God gate, prestigeCount increment, FORBIDDEN error without badge), badge unlock conditions, the session cookie lifecycle, **Offline Buff logic** (+80 XP award, level-up trigger, CONFLICT guard), and **System Glitch logic** (−30 XP via `penaltyXp`, floor-at-0 guarantee, no badge unlock, no level-up). All tests mock the database layer and the session SDK so they run without a live database connection.
+Test coverage includes registration validation (duplicate usernames, password length, special characters), login authentication, quest listing and completion, XP award logic, level-up detection at the 500 XP threshold, **quest undo logic** (XP subtraction, level-down handling, CONFLICT when not completed today), **prestige logic** (XP God gate, prestigeCount increment, FORBIDDEN error without badge), badge unlock conditions, the session cookie lifecycle, **Offline Buff logic** (+80 XP award, level-up trigger, CONFLICT guard), and **System Glitch logic** (−30 XP via `penaltyXp`, floor-at-0 guarantee, no badge unlock, no level-up). All tests mock the database layer and the session SDK so they run without a live database connection. The **xpHistory tests** cover: 7-entry array return, correct per-day XP values, zero-XP days, empty array on no history, and authentication guard.
 
 ---
 
@@ -271,6 +277,8 @@ The portal is designed to be easily adapted. The most common customisations are:
 **Negative XP quest design (System Glitch)** — Quests with `xp < 0` in the QUESTS array take a separate code path in `quest.complete`: instead of calling `addXp()`, the procedure calls `penaltyXp(userId, amount)`. The `penaltyXp` helper decrements `xp` (current-level XP) but clamps it at 0 — it never goes negative and never triggers a level-down. It also does not modify `totalXp` (lifetime earnings), since a penalty is not a real achievement. Badge checks and level-up checks are skipped entirely for negative XP quests. The Undo button on a System Glitch card restores the 30 XP via the standard `subtractXp` path in reverse (i.e. `addXp` is called with 30).
 
 **Prestige design** — `prestigeUser()` resets `xp` and `level` to 1 and increments `prestigeCount`, but deliberately leaves `totalXp` untouched. This means all XP-based badge thresholds remain unlocked after a prestige, and the player's lifetime achievement is preserved. The prestige gate (`badges.includes("xp_5000")`) is checked server-side in the `progress.prestige` tRPC procedure, not client-side, so it cannot be bypassed by manipulating the UI.
+
+**XP history chart design** — The `getXpHistory(userId)` helper queries `user_quests` joined with the QUESTS XP values, groups by `completedDate`, and sums the XP per day for the 7 days ending today. Negative-XP quests (System Glitch) are included in the sum so the chart reflects net daily XP. The frontend maps the 7-entry result to a Recharts `BarChart`, applying a bright neon green fill to today's bar and medium green to past days, with dark grey for zero-XP days. The chart is rendered inside a styled card matching the dashboard's dark theme, with a custom `XpHistoryTooltip` component for hover details.
 
 ---
 
