@@ -81,6 +81,16 @@ After prestiging, a full-screen **PRESTIGE!** overlay fires with a double burst 
 
 The prestige gate is enforced on the server: the `progress.prestige` tRPC procedure checks for the `xp_5000` badge before calling `prestigeUser()`, and throws a `FORBIDDEN` error if the condition is not met.
 
+### XP Breakdown — Today vs All-Time
+
+The welcome banner and stats footer both surface a clear split between **XP earned today** and **lifetime Total XP**, so the player can see both their daily effort and their long-term achievement at a glance.
+
+In the welcome banner, two labelled pills sit side-by-side in the top-right corner. The bright **TODAY / XP EARNED** pill shows the sum of positive XP quests completed since midnight (e.g. `+150`). The darker **ALL-TIME / TOTAL XP** pill shows the cumulative lifetime total that never resets (e.g. `4,250`). The TODAY pill uses a brighter neon green border to draw the eye first.
+
+The stats footer below the quest list has expanded from three cards to four: **⭐ Level**, **🌟 Today's XP**, **⚡ Total XP**, and **🏆 Badges**. The Today's XP card also uses a brighter border to visually distinguish it from the all-time figure.
+
+The `xpToday` value is computed server-side in the `progress.get` tRPC procedure by cross-referencing today's completed quest keys with the `QUESTS` constant. Only positive-XP quests are counted — System Glitch penalties are deliberately excluded, since a penalty is not "earned" XP.
+
 ### Full Persistence
 All progress — current level, XP, completed quests, and unlocked badges — is stored in a MySQL database via Drizzle ORM. Refreshing the page, logging out, or returning the next day never loses progress. Quest completions are day-scoped so the same quest can be completed again tomorrow.
 
@@ -249,6 +259,8 @@ The portal is designed to be easily adapted. The most common customisations are:
 **Why tRPC?** All client–server communication goes through tRPC procedures, which means the TypeScript types defined on the server are automatically available in the frontend with no manual contract files or code generation step. Adding a new feature means writing one procedure in `server/routers.ts` and calling `trpc.feature.useQuery()` in the component — nothing else.
 
 **Why local auth instead of OAuth?** The target user (a 10-year-old) does not have a Manus or Google account. Local username/password auth with bcrypt is the most accessible option. The implementation uses the same session cookie infrastructure as the OAuth flow, so both can coexist if needed.
+
+**xpToday calculation** — `xpToday` is computed in `progress.get` by calling `getTodayCompletedQuests(userId)` (which returns today's completed quest keys) and then reducing over the `QUESTS` constant to sum only the positive-XP entries. System Glitch completions are in the database but their `xp < 0` value means they are skipped in the sum. This keeps the "earned today" figure honest — it reflects genuine positive effort, not net XP after penalties.
 
 **Why SQL `DATE` for quest completions?** Storing a `TIMESTAMP` and comparing with `DATE()` in SQL would work, but constructing the comparison date from `new Date().toISOString()` introduces a UTC offset that shifts the date backward for users in UTC+ timezones, causing quests completed in the evening to appear as "already completed" the next morning. Using a `DATE` column populated with `new Date(year, month, day)` (local time components) eliminates this class of bug entirely.
 

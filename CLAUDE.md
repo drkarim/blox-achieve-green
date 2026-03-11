@@ -163,6 +163,7 @@ Quest undone (Undo button clicked)
 - **XP per quest:** 50 for standard quests, **80 for Offline Buff (legendary)**, **−30 for System Glitch (glitch)**
 - **XP to level up:** 500 (configurable via `XP_PER_LEVEL` in `server/db.ts`)
 - **`xp`** tracks progress within the current level (0–499); resets on level-up.
+- **`xpToday`** is computed on-the-fly in `progress.get` — it is NOT stored in the database. It sums the `xp` values of today's completed quests (from `getTodayCompletedQuests`) where `quest.xp > 0`. System Glitch completions are present in the database but excluded from this sum because their `xp < 0`. This keeps the "earned today" figure honest.
 - **`totalXp`** is the lifetime cumulative total; used for XP-based badge thresholds. Never resets. Penalty quests do not modify `totalXp`.
 - **Undo is day-scoped** — only quests completed *today* can be undone. Attempting to undo a quest from a previous day returns a CONFLICT error.
 - **Quest `variant` field** controls both the visual style and the XP code path: `"normal"` → standard green + `addXp`, `"legendary"` → pulsing glow + `addXp` (higher amount), `"glitch"` → red/purple + `penaltyXp` (no badge/level-up).
@@ -219,7 +220,7 @@ level-up-portal/
 ├── server/
 │   ├── routers.ts              ← tRPC procedures + QUESTS/BADGES constants (exported)
 │   ├── db.ts                   ← All database query helpers (incl. uncompleteQuest, subtractXp, penaltyXp, prestigeUser)
-│   ├── levelup.test.ts         ← 39 feature tests (auth, quests, XP, undo, prestige, Offline Buff, System Glitch)
+│   ├── levelup.test.ts         ← 39 feature tests (auth, quests, XP, undo, prestige, Offline Buff, System Glitch, xpToday)
 │   └── auth.logout.test.ts     ← Template logout test (updated for dual-cookie logout)
 ├── drizzle/
 │   └── schema.ts               ← Database table definitions (source of truth)
@@ -254,6 +255,13 @@ When adding any new feature, follow this order:
 5. Use **optimistic updates** (`onMutate` / `onError` / `onSettled`) for any toggle or list mutation.
 6. Add vitest tests in `server/*.test.ts`.
 7. Verify TypeScript: `pnpm check` must return 0 errors.
+
+**When adding a new XP display metric (like xpToday):**
+- Compute it server-side in `progress.get` by joining existing data (e.g. `getTodayCompletedQuests` + `QUESTS` constant). Do NOT add a new database column unless the value cannot be derived.
+- Return it alongside `xp`, `level`, and `totalXp` in the `progress.get` response.
+- Display it prominently in the welcome banner (pill/badge) AND in the stats footer card.
+- Use a visually distinct border or colour to differentiate "today" from "all-time" at a glance.
+- Exclude penalty/negative-XP actions from "earned" metrics — they are not achievements.
 
 **When adding a reversible action (like the quest undo):**
 - Add a `remove`/`delete` DB helper that is day-scoped or otherwise guarded against accidental data loss.
