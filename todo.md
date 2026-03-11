@@ -70,3 +70,12 @@
 - [x] Update stats footer: 4 cards — Level, Today's XP, Total XP, Badges
 - [x] Update README.md, CLAUDE.md, and skill with xpToday feature
 - [x] Push to GitHub and save checkpoint
+
+## XP History Chart (7-Day)
+- [ ] Add getXpHistory DB helper — aggregate daily XP from user_quests for last 7 days
+- [ ] Add progress.xpHistory tRPC procedure
+- [ ] Build XpHistoryChart component using Recharts BarChart
+- [ ] Wire chart below stats footer on Dashboard
+- [ ] Write vitest tests for xpHistory query
+- [ ] Update README.md, CLAUDE.md, and skill
+- [ ] Push to GitHub and save checkpoint

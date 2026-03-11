@@ -259,6 +259,56 @@ export async function prestigeUser(userId: number): Promise<{ prestigeCount: num
 
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 
+/**
+ * Returns XP earned per day for the last 7 days (including today).
+ * Each entry: { date: "YYYY-MM-DD", xp: number }
+ * Only positive-XP quests are counted (glitch penalties excluded).
+ */
+export async function getXpHistory(
+  userId: number,
+  quests: { key: string; xp: number }[]
+): Promise<{ date: string; xp: number }[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Build the last 7 days as YYYY-MM-DD strings (local time)
+  const days: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    days.push(`${y}-${m}-${day}`);
+  }
+
+  // Fetch all completions in the last 7 days for this user
+  const rows = await db
+    .select()
+    .from(userQuests)
+    .where(
+      and(
+        eq(userQuests.userId, userId),
+        sql`DATE(${userQuests.completedDate}) >= ${days[0]}`
+      )
+    );
+
+  // Build a lookup: date string → total XP earned that day (positive quests only)
+  const xpByDay: Record<string, number> = {};
+  for (const row of rows) {
+    const rawDate = row.completedDate as unknown;
+    const dateStr = typeof rawDate === "string"
+      ? (rawDate as string).slice(0, 10)
+      : new Date(rawDate as Date).toISOString().slice(0, 10);
+    const quest = quests.find(q => q.key === row.questKey);
+    if (quest && quest.xp > 0) {
+      xpByDay[dateStr] = (xpByDay[dateStr] ?? 0) + quest.xp;
+    }
+  }
+
+  return days.map(date => ({ date, xp: xpByDay[date] ?? 0 }));
+}
+
 export async function getUserBadges(userId: number): Promise<string[]> {
   const db = await getDb();
   if (!db) return [];

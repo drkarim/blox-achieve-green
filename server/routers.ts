@@ -6,6 +6,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
+  getXpHistory,
   addXp,
   checkAndUnlockBadges,
   completeQuest,
@@ -197,6 +198,9 @@ export const appRouter = router({
       };
     }),
 
+    xpHistory: protectedProcedure.query(async ({ ctx }) => {
+      return getXpHistory(ctx.user.id, [...QUESTS]);
+    }),
     prestige: protectedProcedure.mutation(async ({ ctx }) => {
       // Gate: must have the XP God badge to prestige
       const badges = await getUserBadges(ctx.user.id);

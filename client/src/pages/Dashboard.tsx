@@ -4,6 +4,74 @@ import { toast } from "sonner";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import confetti from "canvas-confetti";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell,
+} from "recharts";
+
+// ─── XP History Chart ────────────────────────────────────────────────────────
+function XpHistoryChart({ data }: { data: { date: string; xp: number }[] }) {
+  const formatted = data.map(d => {
+    const dt = new Date(d.date + "T12:00:00");
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+    const isToday = d.date === todayStr;
+    const dayLabel = dt.toLocaleDateString(undefined, { weekday: "short" });
+    return { day: isToday ? "Today" : dayLabel, xp: d.xp, isToday };
+  });
+  const maxXp = Math.max(...formatted.map(d => d.xp), 100);
+  const allEmpty = formatted.every(d => d.xp === 0);
+  return (
+    <div className="roblox-card p-5">
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "1.4rem" }}>📊</span>
+        <span style={{ fontFamily: "'Bangers', cursive", fontSize: "1.4rem", color: "oklch(0.72 0.22 142)", letterSpacing: "0.05em" }}>7-DAY XP HISTORY</span>
+        <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.8rem", color: "oklch(0.45 0.05 145)", marginLeft: "auto" }}>XP earned per day</span>
+      </div>
+      <ResponsiveContainer width="100%" height={180}>
+        <BarChart data={formatted} margin={{ top: 4, right: 8, left: -20, bottom: 0 }} barCategoryGap="28%">
+          <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.20 0.04 142)" vertical={false} />
+          <XAxis
+            dataKey="day"
+            tick={{ fontFamily: "'Fredoka', sans-serif", fontSize: 13, fill: "oklch(0.65 0.05 145)" }}
+            axisLine={false} tickLine={false}
+          />
+          <YAxis
+            domain={[0, maxXp + 20]}
+            tick={{ fontFamily: "'Fredoka', sans-serif", fontSize: 12, fill: "oklch(0.45 0.05 145)" }}
+            axisLine={false} tickLine={false}
+          />
+          <Tooltip
+            cursor={{ fill: "oklch(0.18 0.04 142)" }}
+            contentStyle={{
+              background: "oklch(0.13 0.04 142)",
+              border: "2px solid oklch(0.35 0.15 142)",
+              borderRadius: "10px",
+              fontFamily: "'Fredoka', sans-serif",
+              color: "oklch(0.97 0.01 145)",
+            }}
+            formatter={(value: number) => [`${value} XP`, "Earned"]}
+          />
+          <Bar dataKey="xp" radius={[6, 6, 0, 0]} maxBarSize={48}>
+            {formatted.map((entry, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={entry.isToday ? "oklch(0.80 0.26 142)" : entry.xp > 0 ? "oklch(0.60 0.20 142)" : "oklch(0.22 0.06 142)"}
+                stroke={entry.isToday ? "oklch(0.90 0.28 142)" : "none"}
+                strokeWidth={entry.isToday ? 2 : 0}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+      {allEmpty && (
+        <div style={{ textAlign: "center", fontFamily: "'Fredoka', sans-serif", color: "oklch(0.40 0.06 142)", marginTop: "0.5rem", fontSize: "0.9rem" }}>
+          No XP earned yet this week — complete quests to fill the chart! 🎮
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Prestige Overlay ───────────────────────────────────────────────────────────
 function PrestigeOverlay({ prestigeCount, onClose }: { prestigeCount: number; onClose: () => void }) {
@@ -333,6 +401,10 @@ export default function Dashboard() {
   });
 
   const { data: badges, isLoading: badgesLoading } = trpc.badge.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+    refetchOnWindowFocus: false,
+  });
+  const { data: xpHistory } = trpc.progress.xpHistory.useQuery(undefined, {
     enabled: isAuthenticated,
     refetchOnWindowFocus: false,
   });
@@ -706,6 +778,11 @@ export default function Dashboard() {
             <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: "0.85rem", color: "oklch(0.55 0.05 145)" }}>Badges</div>
           </div>
         </div>
+
+        {/* ─── XP History Chart ──────────────────────────────────────────────── */}
+        {xpHistory && xpHistory.length > 0 && (
+          <XpHistoryChart data={xpHistory} />
+        )}
       </div>
     </div>
   );

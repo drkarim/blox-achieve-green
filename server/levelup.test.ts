@@ -18,6 +18,7 @@ vi.mock("./db", () => ({
   checkAndUnlockBadges: vi.fn(),
   getUserBadges: vi.fn(),
   prestigeUser: vi.fn(),
+  getXpHistory: vi.fn(),
 }));
 
 vi.mock("./_core/sdk", () => ({
@@ -458,6 +459,63 @@ describe("quest.complete (system_glitch)", () => {
     await expect(
       caller.quest.complete({ questKey: "system_glitch" })
     ).rejects.toThrow("Quest already completed today");
+  });
+});
+
+// ─── XP History Tests ──────────────────────────────────────────────────────
+describe("progress.xpHistory", () => {
+  const mockHistory = [
+    { date: "2026-03-05", xp: 0 },
+    { date: "2026-03-06", xp: 100 },
+    { date: "2026-03-07", xp: 50 },
+    { date: "2026-03-08", xp: 250 },
+    { date: "2026-03-09", xp: 0 },
+    { date: "2026-03-10", xp: 150 },
+    { date: "2026-03-11", xp: 80 },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 7 entries for the last 7 days", async () => {
+    vi.mocked(db.getXpHistory).mockResolvedValue(mockHistory);
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.progress.xpHistory();
+    expect(result).toHaveLength(7);
+  });
+
+  it("returns correct xp values per day", async () => {
+    vi.mocked(db.getXpHistory).mockResolvedValue(mockHistory);
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.progress.xpHistory();
+    expect(result[1].xp).toBe(100);
+    expect(result[3].xp).toBe(250);
+  });
+
+  it("returns zero for days with no completions", async () => {
+    vi.mocked(db.getXpHistory).mockResolvedValue(mockHistory);
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.progress.xpHistory();
+    expect(result[0].xp).toBe(0);
+    expect(result[4].xp).toBe(0);
+  });
+
+  it("returns empty array when db returns empty", async () => {
+    vi.mocked(db.getXpHistory).mockResolvedValue([]);
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.progress.xpHistory();
+    expect(result).toHaveLength(0);
+  });
+
+  it("requires authentication", async () => {
+    const ctx = createContext(null);
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.progress.xpHistory()).rejects.toThrow();
   });
 });
 
