@@ -1,0 +1,1 @@
+ALTER TABLE `user_progress` ADD `prestigeCount` int DEFAULT 0 NOT NULL;

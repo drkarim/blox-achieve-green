@@ -155,6 +155,28 @@ Quest undone (Undo button clicked)
 - **`totalXp`** is the lifetime cumulative total; used for XP-based badge thresholds. Never resets.
 - **Undo is day-scoped** — only quests completed *today* can be undone. Attempting to undo a quest from a previous day returns a CONFLICT error.
 
+### Prestige System
+
+```
+Prestige triggered (player has xp_5000 badge)
+  → progress.prestige() procedure
+      → getUserBadges(userId) → check for "xp_5000"
+      → if not found: throw FORBIDDEN ("Earn the XP God badge first")
+      → prestigeUser(userId)
+            xp = 1
+            level = 1
+            prestigeCount += 1
+            totalXp unchanged   ← all XP-based badges remain unlocked
+      → unlock "prestige" badge if not already owned
+      → return { success: true, prestigeCount }
+```
+
+- **Prestige gate** is enforced **server-side** in `progress.prestige` — never trust the client to gate this.
+- **`totalXp` is never reset** — this ensures all XP-based badges (XP Hunter, XP Master, The Grinder, XP God) stay unlocked across prestiges.
+- **`prestigeCount`** is stored on `user_progress` and displayed in the dashboard header as a gold **✨ Prestige N** badge.
+- **Prestige animation** — when `progress.prestige` returns, the Dashboard sets `showPrestige = true`, rendering `<PrestigeOverlay>` which fires gold + white `canvas-confetti` in two bursts and auto-dismisses after 6 seconds.
+- **Ordinal numbering** — the overlay uses `ordinal(n)` helper to display "1st Prestige Achieved!", "2nd Prestige Achieved!", etc.
+
 ### Daily Quest Reset
 
 Quests reset every day at midnight (local time). The `user_quests` table stores a `completedDate` column as SQL `DATE` type. Completion checks use `DATE(completedDate) = DATE(?)` comparison. The date value is always constructed as `new Date(year, month, day)` using local date components — **never** `new Date().toISOString().split('T')[0]` — to avoid UTC timezone drift.
@@ -184,8 +206,8 @@ level-up-portal/
 │           └── Dashboard.tsx   ← Main game screen (XP bar, quests, badge room)
 ├── server/
 │   ├── routers.ts              ← tRPC procedures + QUESTS/BADGES constants (exported)
-│   ├── db.ts                   ← All database query helpers (incl. uncompleteQuest, subtractXp)
-│   ├── levelup.test.ts         ← 23 feature tests (auth, quests, XP, undo, badges)
+│   ├── db.ts                   ← All database query helpers (incl. uncompleteQuest, subtractXp, prestigeUser)
+│   ├── levelup.test.ts         ← 29 feature tests (auth, quests, XP, undo, prestige, badges)
 │   └── auth.logout.test.ts     ← Template logout test (updated for dual-cookie logout)
 ├── drizzle/
 │   └── schema.ts               ← Database table definitions (source of truth)
@@ -201,7 +223,7 @@ level-up-portal/
 | Table | Key Columns | Purpose |
 |---|---|---|
 | `users` | `id`, `openId`, `username`, `passwordHash`, `name`, `role` | User accounts (local + OAuth) |
-| `user_progress` | `userId`, `xp`, `level`, `totalXp` | Per-user XP and level state |
+| `user_progress` | `userId`, `xp`, `level`, `totalXp`, `prestigeCount` | Per-user XP, level, and prestige state |
 | `user_quests` | `userId`, `questKey`, `completedDate` | Daily quest completion records |
 | `user_badges` | `userId`, `badgeKey`, `unlockedAt` | Earned badge records |
 
@@ -226,6 +248,12 @@ When adding any new feature, follow this order:
 - Add a corresponding `subtract`/`decrement` helper with floor-clamping logic.
 - Add the tRPC procedure and mirror the optimistic update pattern from `quest.uncomplete` in `routers.ts`.
 - Use `.roblox-btn-undo` (amber) for the undo button so it is visually distinct from the primary action.
+
+**When adding a prestige-style reset:**
+- Always gate the action server-side (check a badge or threshold) — never trust the client.
+- Decide which fields reset (XP, level) and which are preserved (`totalXp`, badges, `prestigeCount`).
+- Add a counter column to track how many times the action has been taken.
+- Fire a distinct animation (gold confetti vs. green confetti) so the player knows this is a special event.
 
 ---
 

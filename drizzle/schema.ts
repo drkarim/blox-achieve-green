@@ -25,6 +25,7 @@ export const userProgress = mysqlTable("user_progress", {
   xp: int("xp").default(0).notNull(),
   level: int("level").default(1).notNull(),
   totalXp: int("totalXp").default(0).notNull(), // all-time XP for badge unlocks
+  prestigeCount: int("prestigeCount").default(0).notNull(), // number of times prestiged
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 

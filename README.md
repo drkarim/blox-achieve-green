@@ -57,7 +57,7 @@ Quests reset automatically every day at midnight. The system stores completions 
 Each completed quest awards **+50 XP**. A high-contrast animated progress bar at the top of the screen shows current XP progress toward the next level threshold (500 XP). When the bar fills, a full-screen **LEVEL UP** overlay fires — complete with a burst of green confetti powered by `canvas-confetti` — and the player's level increments permanently. The system tracks both per-level XP (which resets on level-up) and lifetime total XP (which never resets and drives XP-based badge unlocks).
 
 ### Badge Room
-Eight achievement badges are displayed in a grid at the bottom of the dashboard. Locked badges render in greyscale at reduced opacity. When a badge condition is met, it unlocks instantly: full colour returns, a neon green glow appears around the card, and a toast notification announces the unlock. Badges reward a mix of milestones — first quest completion, reaching specific levels, and accumulating lifetime XP.
+Nine achievement badges are displayed in a grid at the bottom of the dashboard. Locked badges render in greyscale at reduced opacity. When a badge condition is met, it unlocks instantly: full colour returns, a neon green glow appears around the card, and a toast notification announces the unlock. Badges reward a mix of milestones — first quest completion, reaching specific levels, accumulating lifetime XP, and the ultimate **Prestige** achievement.
 
 | Badge | Condition |
 |---|---|
@@ -69,6 +69,15 @@ Eight achievement badges are displayed in a grid at the bottom of the dashboard.
 | 🔥 XP Master | Earn 1,000 total XP |
 | 💪 The Grinder | Earn 2,500 total XP |
 | ⚡ XP God | Earn 5,000 total XP |
+| ✨ Prestige | Prestige at least once after reaching XP God |
+
+### Prestige System
+
+Once a player earns the **⚡ XP God** badge (5,000 total XP), a gold **✨ PRESTIGE NOW** button appears on the dashboard, framed in a glowing gold card. Clicking it triggers a confirmation dialog, then resets the player's current XP and Level back to 1 — while permanently preserving their Total XP and all earned badges. A `prestigeCount` column on `user_progress` tracks how many times the player has prestiged.
+
+After prestiging, a full-screen **PRESTIGE!** overlay fires with a double burst of gold and white confetti (powered by `canvas-confetti`). The header gains a gold **✨ Prestige N** badge next to the level indicator, showing the prestige tier at a glance. Players can prestige multiple times — the overlay uses ordinal numbering ("1st Prestige Achieved!", "2nd Prestige Achieved!", etc.).
+
+The prestige gate is enforced on the server: the `progress.prestige` tRPC procedure checks for the `xp_5000` badge before calling `prestigeUser()`, and throws a `FORBIDDEN` error if the condition is not met.
 
 ### Full Persistence
 All progress — current level, XP, completed quests, and unlocked badges — is stored in a MySQL database via Drizzle ORM. Refreshing the page, logging out, or returning the next day never loses progress. Quest completions are day-scoped so the same quest can be completed again tomorrow.
@@ -130,8 +139,8 @@ level-up-portal/
 │           └── Dashboard.tsx   # Main game screen
 ├── server/
 │   ├── routers.ts              # All tRPC procedures + QUESTS/BADGES constants
-│   ├── db.ts                   # Database query helpers (incl. uncompleteQuest, subtractXp)
-│   ├── levelup.test.ts         # 23 feature tests (incl. quest undo suite)
+│   ├── db.ts                   # Database query helpers (incl. uncompleteQuest, subtractXp, prestigeUser)
+│   ├── levelup.test.ts         # 29 feature tests (incl. quest undo + prestige suites)
 │   └── auth.logout.test.ts     # Session/cookie tests
 ├── drizzle/
 │   └── schema.ts               # Database table definitions (source of truth)
@@ -147,7 +156,7 @@ level-up-portal/
 
 ```
 users            — User accounts (supports both local and OAuth login)
-user_progress    — Per-user XP, level, and lifetime total XP
+user_progress    — Per-user XP, level, totalXp, and prestigeCount
 user_quests      — Daily quest completion records (date-scoped)
 user_badges      — Earned badge records with unlock timestamps
 ```
@@ -209,13 +218,13 @@ pnpm drizzle-kit generate   # Generate migration SQL from schema changes
 
 ## Testing
 
-The project ships with **24 Vitest tests** covering all critical paths:
+The project ships with **29 Vitest tests** covering all critical paths:
 
 ```bash
 pnpm test
 ```
 
-Test coverage includes registration validation (duplicate usernames, password length, special characters), login authentication, quest listing and completion, XP award logic, level-up detection at the 500 XP threshold, **quest undo logic** (XP subtraction, level-down handling, CONFLICT when not completed today), badge unlock conditions, and the session cookie lifecycle. All tests mock the database layer and the session SDK so they run without a live database connection.
+Test coverage includes registration validation (duplicate usernames, password length, special characters), login authentication, quest listing and completion, XP award logic, level-up detection at the 500 XP threshold, **quest undo logic** (XP subtraction, level-down handling, CONFLICT when not completed today), **prestige logic** (XP God gate, prestigeCount increment, FORBIDDEN error without badge), badge unlock conditions, and the session cookie lifecycle. All tests mock the database layer and the session SDK so they run without a live database connection.
 
 ---
 
@@ -244,6 +253,8 @@ The portal is designed to be easily adapted. The most common customisations are:
 **Optimistic updates** — Both quest completion and quest undo use the `onMutate` / `onError` / `onSettled` tRPC mutation pattern. The quest card flips state instantly on click; if the server returns an error, the cache rolls back automatically. This makes the UI feel instantaneous even on slow connections.
 
 **Quest undo design** — The undo flow mirrors the complete flow in reverse: `uncompleteQuest()` deletes the `user_quests` record for today, then `subtractXp()` decrements the XP. If the subtraction would push `xp` below zero and the player is above Level 1, the system borrows from the previous level (`newXp = XP_PER_LEVEL + newXp`) and decrements the level. At Level 1, XP is clamped to 0 rather than going negative. `totalXp` (lifetime earnings) is also decremented but never goes below 0.
+
+**Prestige design** — `prestigeUser()` resets `xp` and `level` to 1 and increments `prestigeCount`, but deliberately leaves `totalXp` untouched. This means all XP-based badge thresholds remain unlocked after a prestige, and the player's lifetime achievement is preserved. The prestige gate (`badges.includes("xp_5000")`) is checked server-side in the `progress.prestige` tRPC procedure, not client-side, so it cannot be bypassed by manipulating the UI.
 
 ---
 

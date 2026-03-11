@@ -207,6 +207,33 @@ export async function subtractXp(userId: number, amount: number): Promise<{ xp: 
   return { xp: newXp, level: newLevel, leveledDown };
 }
 
+// ─── Prestige helper ─────────────────────────────────────────────────────────
+
+/**
+ * Prestige: resets XP and level back to 1, increments prestigeCount.
+ * totalXp is preserved (lifetime earnings, used for badge tracking).
+ * Requires the player to have earned the xp_5000 (XP God) badge.
+ * Returns the new prestigeCount.
+ */
+export async function prestigeUser(userId: number): Promise<{ prestigeCount: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const progress = await getUserProgress(userId);
+  if (!progress) throw new Error("Progress not found");
+
+  const newPrestigeCount = (progress.prestigeCount ?? 0) + 1;
+
+  await db.update(userProgress)
+    .set({ xp: 0, level: 1, prestigeCount: newPrestigeCount })
+    .where(eq(userProgress.userId, userId));
+
+  // Unlock the prestige badge (key: "prestige_1" for first prestige)
+  await unlockBadge(userId, "prestige");
+
+  return { prestigeCount: newPrestigeCount };
+}
+
 // ─── Badge helpers ────────────────────────────────────────────────────────────
 
 export async function getUserBadges(userId: number): Promise<string[]> {

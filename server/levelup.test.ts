@@ -16,6 +16,7 @@ vi.mock("./db", () => ({
   subtractXp: vi.fn(),
   checkAndUnlockBadges: vi.fn(),
   getUserBadges: vi.fn(),
+  prestigeUser: vi.fn(),
 }));
 
 vi.mock("./_core/sdk", () => ({
@@ -198,7 +199,7 @@ describe("quest.complete", () => {
 // ─── Progress Tests ───────────────────────────────────────────────────────────
 describe("progress.get", () => {
   it("returns user progress with XP and level", async () => {
-    vi.mocked(db.getUserProgress).mockResolvedValue({ id: 1, userId: 1, xp: 150, level: 1, totalXp: 150, updatedAt: new Date() });
+    vi.mocked(db.getUserProgress).mockResolvedValue({ id: 1, userId: 1, xp: 150, level: 1, totalXp: 150, prestigeCount: 0, updatedAt: new Date() });
     vi.mocked(db.getUserBadges).mockResolvedValue(["first_quest"]);
     const ctx = createContext(createMockUser());
     const caller = appRouter.createCaller(ctx);
@@ -213,12 +214,12 @@ describe("progress.get", () => {
 
 // ─── Badge Tests ──────────────────────────────────────────────────────────────
 describe("badge.list", () => {
-  it("returns all 8 badges with unlock status", async () => {
+  it("returns all 9 badges with unlock status", async () => {
     vi.mocked(db.getUserBadges).mockResolvedValue(["first_quest", "level_2"]);
     const ctx = createContext(createMockUser());
     const caller = appRouter.createCaller(ctx);
     const result = await caller.badge.list();
-    expect(result).toHaveLength(8);
+    expect(result).toHaveLength(9);
     expect(result.find(b => b.key === "first_quest")?.unlocked).toBe(true);
     expect(result.find(b => b.key === "level_2")?.unlocked).toBe(true);
     expect(result.find(b => b.key === "level_5")?.unlocked).toBe(false);
@@ -296,7 +297,52 @@ describe("QUESTS constant", () => {
 });
 
 describe("BADGES constant", () => {
-  it("has exactly 8 badges", () => {
-    expect(BADGES).toHaveLength(8);
+  it("has exactly 9 badges (including prestige)", () => {
+    expect(BADGES).toHaveLength(9);
+  });
+
+  it("includes the prestige badge", () => {
+    const keys = BADGES.map(b => b.key);
+    expect(keys).toContain("prestige");
+  });
+});
+
+// ─── Prestige Tests ────────────────────────────────────────────────────────────
+describe("progress.prestige", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("resets XP and level, increments prestigeCount", async () => {
+    vi.mocked(db.getUserBadges).mockResolvedValue(["xp_5000"]);
+    vi.mocked(db.prestigeUser).mockResolvedValue({ prestigeCount: 1 });
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.progress.prestige();
+    expect(result.success).toBe(true);
+    expect(result.prestigeCount).toBe(1);
+    expect(db.prestigeUser).toHaveBeenCalledWith(1);
+  });
+
+  it("increments prestigeCount on subsequent prestiges", async () => {
+    vi.mocked(db.getUserBadges).mockResolvedValue(["xp_5000", "prestige"]);
+    vi.mocked(db.prestigeUser).mockResolvedValue({ prestigeCount: 2 });
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.progress.prestige();
+    expect(result.prestigeCount).toBe(2);
+  });
+
+  it("throws FORBIDDEN if player does not have XP God badge", async () => {
+    vi.mocked(db.getUserBadges).mockResolvedValue(["first_quest", "level_2"]);
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.progress.prestige()).rejects.toThrow("XP God status");
+  });
+
+  it("requires authentication", async () => {
+    const ctx = createContext(null);
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.progress.prestige()).rejects.toThrow();
   });
 });

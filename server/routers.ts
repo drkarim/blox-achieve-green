@@ -14,6 +14,7 @@ import {
   getUserBadges,
   getUserByUsername,
   getUserProgress,
+  prestigeUser,
   subtractXp,
   uncompleteQuest,
 } from "./db";
@@ -38,6 +39,7 @@ export const BADGES = [
   { key: "xp_1000",      label: "XP Master",       description: "Earn 1,000 total XP",             icon: "🔥" },
   { key: "xp_5000",      label: "XP God",          description: "Earn 5,000 total XP",             icon: "⚡" },
   { key: "grinder",      label: "The Grinder",     description: "Earn 2,500 total XP",             icon: "💪" },
+  { key: "prestige",     label: "Prestige",        description: "Reach XP God and Prestige!",       icon: "✨" },
 ] as const;
 
 function createLocalSessionToken(userId: number, username: string): string {
@@ -172,8 +174,25 @@ export const appRouter = router({
         xp: progress?.xp ?? 0,
         level: progress?.level ?? 1,
         totalXp: progress?.totalXp ?? 0,
+        prestigeCount: progress?.prestigeCount ?? 0,
         xpToNextLevel: 500,
         badges,
+      };
+    }),
+
+    prestige: protectedProcedure.mutation(async ({ ctx }) => {
+      // Gate: must have the XP God badge to prestige
+      const badges = await getUserBadges(ctx.user.id);
+      if (!badges.includes("xp_5000")) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You must reach XP God status (5,000 total XP) before you can Prestige!",
+        });
+      }
+      const result = await prestigeUser(ctx.user.id);
+      return {
+        success: true,
+        prestigeCount: result.prestigeCount,
       };
     }),
   }),

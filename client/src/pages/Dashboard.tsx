@@ -5,7 +5,73 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import confetti from "canvas-confetti";
 
-// ─── Level-Up Overlay ─────────────────────────────────────────────────────────
+// ─── Prestige Overlay ───────────────────────────────────────────────────────────
+function PrestigeOverlay({ prestigeCount, onClose }: { prestigeCount: number; onClose: () => void }) {
+  useEffect(() => {
+    // Gold + white confetti burst for prestige
+    const fire = (particleRatio: number, opts: confetti.Options) => {
+      confetti({
+        origin: { y: 0.5 },
+        ...opts,
+        particleCount: Math.floor(300 * particleRatio),
+        colors: ["#FFD700", "#FFA500", "#FFEC8B", "#FFFACD", "#ffffff", "#32CD32"],
+      });
+    };
+    fire(0.3, { spread: 80, startVelocity: 60 });
+    fire(0.25, { spread: 120 });
+    fire(0.35, { spread: 160, decay: 0.91, scalar: 0.9 });
+    fire(0.1,  { spread: 200, startVelocity: 30, decay: 0.92, scalar: 1.3 });
+    // Second burst after 0.8s
+    setTimeout(() => {
+      fire(0.4, { spread: 100, startVelocity: 55 });
+      fire(0.2, { spread: 140, decay: 0.93 });
+    }, 800);
+
+    const timer = setTimeout(onClose, 6000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const ordinal = (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  return (
+    <div className="levelup-overlay" onClick={onClose} style={{ background: "oklch(0 0 0 / 0.88)" }}>
+      <div className="levelup-box" style={{ border: "4px solid #FFD700", boxShadow: "0 0 60px #FFD700, 0 0 120px oklch(0.72 0.22 142 / 0.4)" }}>
+        <div style={{ fontSize: "5rem", lineHeight: 1, marginBottom: "0.5rem" }}>✨</div>
+        <div style={{
+          fontFamily: "'Bangers', cursive",
+          fontSize: "4.5rem",
+          letterSpacing: "0.05em",
+          color: "#FFD700",
+          textShadow: "0 0 40px #FFD700, 0 4px 0 #8B6914",
+          lineHeight: 1,
+        }}>
+          PRESTIGE!
+        </div>
+        <div style={{
+          fontFamily: "'Fredoka', sans-serif",
+          fontSize: "1.8rem",
+          fontWeight: 700,
+          color: "oklch(0.97 0.01 145)",
+          marginTop: "0.5rem",
+        }}>
+          {ordinal(prestigeCount)} Prestige Achieved!
+        </div>
+        <div style={{ color: "#FFD700", fontFamily: "'Fredoka', sans-serif", marginTop: "0.5rem", fontSize: "1.1rem" }}>
+          XP &amp; Level reset. Your legend lives on! ✨
+        </div>
+        <div style={{ color: "oklch(0.45 0.03 145)", fontFamily: "'Fredoka', sans-serif", marginTop: "1.5rem", fontSize: "0.9rem" }}>
+          (Click anywhere to continue)
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Level-Up Overlay ────────────────────────────────────────────────────────────
 function LevelUpOverlay({ level, onClose }: { level: number; onClose: () => void }) {
   useEffect(() => {
     // Fire green confetti
@@ -224,6 +290,8 @@ export default function Dashboard() {
   const [, navigate] = useLocation();
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [newLevel, setNewLevel] = useState(1);
+  const [showPrestige, setShowPrestige] = useState(false);
+  const [prestigeCountDisplay, setPrestigeCountDisplay] = useState(0);
   const [completingQuest, setCompletingQuest] = useState<string | null>(null);
   const [uncomletingQuest, setUncompletingQuest] = useState<string | null>(null);
   const utils = trpc.useUtils();
@@ -329,6 +397,30 @@ export default function Dashboard() {
   }, [logout, navigate]);
 
   const handleCloseLevelUp = useCallback(() => setShowLevelUp(false), []);
+  const handleClosePrestige = useCallback(() => setShowPrestige(false), []);
+
+  const prestigeMutation = trpc.progress.prestige.useMutation({
+    onSuccess: (data) => {
+      setPrestigeCountDisplay(data.prestigeCount);
+      setShowPrestige(true);
+      utils.progress.get.invalidate();
+      utils.badge.list.invalidate();
+      utils.quest.list.invalidate();
+      toast.success(`✨ PRESTIGE ${data.prestigeCount} achieved! XP & Level reset!`, { duration: 4000 });
+    },
+    onError: (err) => {
+      toast.error(err.message || "Prestige failed!");
+    },
+  });
+
+  const handlePrestige = useCallback(() => {
+    if (window.confirm("Are you sure? Your XP and Level will reset to 1, but your badges and Total XP are kept forever. This is the ultimate flex! ✨")) {
+      prestigeMutation.mutate();
+    }
+  }, [prestigeMutation]);
+
+  // Check if player is eligible to prestige (has XP God badge)
+  const canPrestige = progress?.badges?.includes("xp_5000") ?? false;
 
   const displayName = user?.username || user?.name || "Hero";
   const completedCount = quests?.filter(q => q.completed).length ?? 0;
@@ -346,6 +438,8 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen pb-12">
+      {/* Prestige Overlay */}
+      {showPrestige && <PrestigeOverlay prestigeCount={prestigeCountDisplay} onClose={handleClosePrestige} />}
       {/* Level-Up Overlay */}
       {showLevelUp && <LevelUpOverlay level={newLevel} onClose={handleCloseLevelUp} />}
 
@@ -367,6 +461,23 @@ export default function Dashboard() {
                 LEVEL UP PORTAL
               </span>
             </div>
+
+            {/* Prestige Counter — shown only when prestigeCount > 0 */}
+            {(progress?.prestigeCount ?? 0) > 0 && (
+              <div style={{
+                background: "linear-gradient(135deg, oklch(0.22 0.14 65) 0%, oklch(0.16 0.10 65) 100%)",
+                border: "2px solid #FFD700",
+                borderRadius: "10px",
+                padding: "0.3rem 0.8rem",
+                fontFamily: "'Fredoka', sans-serif",
+                fontWeight: 700,
+                color: "#FFD700",
+                fontSize: "1rem",
+                boxShadow: "0 0 12px #FFD700aa",
+              }}>
+                ✨ Prestige {progress?.prestigeCount}
+              </div>
+            )}
 
             {/* Level Badge */}
             <div style={{
@@ -479,9 +590,28 @@ export default function Dashboard() {
         {!badgesLoading && badges && (
           <BadgeRoom badges={badges} />
         )}
+        {/* ─── Prestige Button ─────────────────────────────────────────────────── */}
+        {canPrestige && (
+          <div className="roblox-card p-6 text-center" style={{ border: "3px solid #FFD700", boxShadow: "0 0 30px #FFD70044" }}>
+            <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>✨</div>
+            <h2 style={{ fontFamily: "'Bangers', cursive", fontSize: "2.5rem", letterSpacing: "0.05em", color: "#FFD700", margin: 0, textShadow: "0 0 20px #FFD700" }}>
+              PRESTIGE UNLOCKED!
+            </h2>
+            <p style={{ fontFamily: "'Fredoka', sans-serif", color: "oklch(0.75 0.05 145)", marginTop: "0.5rem", fontSize: "1rem", maxWidth: "480px", margin: "0.5rem auto 0" }}>
+              You've reached <strong style={{ color: "#FFD700" }}>XP God</strong> status! Prestige to reset your XP &amp; Level back to 1 and earn the legendary <strong style={{ color: "#FFD700" }}>✨ Prestige Badge</strong>. Your Total XP and all badges are kept forever.
+            </p>
+            <button
+              className="roblox-btn mt-5"
+              style={{ background: "linear-gradient(180deg, #FFD700 0%, #FFA500 100%)", borderColor: "#8B6914", color: "#1a0f00", boxShadow: "0 6px 0 #8B6914, 0 8px 20px #FFD70066", fontSize: "1.2rem", padding: "0.75rem 2.5rem" }}
+              onClick={handlePrestige}
+              disabled={prestigeMutation.isPending}
+            >
+              {prestigeMutation.isPending ? "⏳ Prestiging..." : "✨ PRESTIGE NOW"}
+            </button>
+          </div>
+        )}
 
-        {/* ─── Stats Footer ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* ─── Stats Footer ───────────────────────────────────────────────────── */}        <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Level", value: progress?.level ?? 1, icon: "⭐" },
             { label: "Total XP", value: progress?.totalXp ?? 0, icon: "⚡" },

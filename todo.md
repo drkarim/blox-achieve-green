@@ -39,3 +39,15 @@
 - [ ] Optimistic update for uncomplete action
 - [ ] Write tests for uncomplete flow
 - [ ] Push to GitHub and save checkpoint
+
+## Prestige System
+- [ ] Add `prestigeCount` column to `user_progress` table
+- [ ] Add `prestige` DB helper (reset XP/level, increment prestigeCount, unlock prestige badge)
+- [ ] Add `progress.prestige` tRPC procedure (protected, requires XP God badge)
+- [ ] Show PRESTIGE button on Dashboard when XP God badge is unlocked
+- [ ] Show prestige counter (e.g. "✦ Prestige II") in header next to level
+- [ ] Add gold prestige badge to BADGES constant
+- [ ] Add prestige animation/overlay (gold confetti burst)
+- [ ] Write prestige vitest tests
+- [ ] Update README.md and CLAUDE.md with prestige docs
+- [ ] Push to GitHub and save checkpoint
