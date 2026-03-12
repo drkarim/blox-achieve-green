@@ -161,6 +161,20 @@ Quest undone (Undo button clicked)
 ```
 
 - **XP per quest:** 50 for standard quests, **80 for Offline Buff (legendary)**, **−30 for System Glitch (glitch)**
+
+**Full Quest Reference (as of current build):**
+
+| Key | Label | XP | Variant | Description |
+|---|---|---|---|---|
+| `daily_grind` | Daily Grind | +50 | normal | Start your day strong! Complete your morning routine. |
+| `homework_quest` | Homework Quest | +50 | normal | Conquer your homework and level up your brain! |
+| `room_recon` | Household Chores | +50 | normal | Doing chores and helping mum and dad. |
+| `reading_mission` | Reading Mission | +50 | normal | Read for at least 20 minutes today. |
+| `custom_training` | Controlling Anger | +50 | normal | Keep your cool, hero! No shouting, no rudeness — breathe deep, stay calm, and show everyone your superpower! 🧘 |
+| `offline_buff` | Power Down: The Offline Buff | +80 | legendary | Completed at least 1 hour of screen-free time. |
+| `system_glitch` | System Glitch | −30 | glitch | A corruption in the system. Activate at your own risk! |
+
+> Note: The database key (`questKey`) never changes — only the `label` and `description` in the `QUESTS` constant in `server/routers.ts` need updating when renaming a quest.
 - **XP to level up:** 500 (configurable via `XP_PER_LEVEL` in `server/db.ts`)
 - **`xp`** tracks progress within the current level (0–499); resets on level-up.
 - **`xpToday`** is computed on-the-fly in `progress.get` — it is NOT stored in the database. It sums the `xp` values of today's completed quests (from `getTodayCompletedQuests`) where `quest.xp > 0`. System Glitch completions are present in the database but excluded from this sum because their `xp < 0`. This keeps the "earned today" figure honest.

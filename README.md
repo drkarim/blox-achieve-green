@@ -39,7 +39,7 @@ The project was built with a 10-year-old user in mind, with a deliberate focus o
 A complete local authentication system built without any third-party OAuth dependency. Users register with a username and password; passwords are hashed with **bcrypt** (12 rounds) before storage. Sessions are maintained via signed HTTP-only cookies that persist for 7 days. The dashboard greets every returning player with **"Welcome back, [Username]!"** prominently displayed in the Bangers gaming font.
 
 ### The Quest Dashboard
-Five daily quest cards are presented on the main dashboard, each representing a real-world task the player should complete that day. Every card displays the quest name, a short motivational description, the XP reward, and a chunky green **Complete** button. Once a quest is marked done, the card immediately updates to a strikethrough state via optimistic UI updates — no waiting for the server.
+Seven quest cards are presented on the main dashboard, each representing a real-world task or challenge the player can engage with that day. Every card displays the quest name, a short motivational description, the XP reward, and a chunky green **Complete** button. Once a quest is marked done, the card immediately updates to a strikethrough state via optimistic UI updates — no waiting for the server.
 
 Completed quests display an amber **"↩ Undo"** button in place of the Complete button. Clicking Undo removes the completion record from the database, subtracts the 50 XP, and instantly restores the quest to its incomplete state — again via optimistic updates so the UI responds before the server confirms. If the XP subtraction causes the player's current-level XP to go negative, the system automatically decrements the level and carries the remaining XP forward (e.g. undoing a quest at 30 XP on Level 2 drops to Level 1 at 480 XP). The XP hint on the card also updates to show **"-50 XP if undone"** while a quest is in the completed state, so the player always knows the consequence before clicking.
 
@@ -47,9 +47,9 @@ Completed quests display an amber **"↩ Undo"** button in place of the Complete
 |---|---|---|---|
 | ⚡ Daily Grind | Start your day strong — complete your morning routine | +50 XP | Standard |
 | 📚 Homework Quest | Conquer your homework and level up your brain | +50 XP | Standard |
-| 🏠 Room Recon | Clean and organise your room like a pro | +50 XP | Standard |
+| 🏠 Household Chores | Doing chores and helping mum and dad | +50 XP | Standard |
 | 📖 Reading Mission | Read for at least 20 minutes today | +50 XP | Standard |
-| 🏋️ Custom Training | Exercise, practise, or learn something new | +50 XP | Standard |
+| 🧘 Controlling Anger | Keep your cool, hero! Breathe deep, stay calm, no shouting or rudeness | +50 XP | Standard |
 | 🌿 Power Down: The Offline Buff | Completed at least 1 hour of screen-free time | **+80 XP** | Legendary |
 | 💀 System Glitch | A corruption in the system. Activate at your own risk! | **−30 XP** | Glitch |
 
