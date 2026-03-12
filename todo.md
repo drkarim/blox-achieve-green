@@ -85,3 +85,8 @@
 
 ## Quest Rename #2
 - [x] Rename 'Custom Training' → 'Controlling Anger' with fun kid-friendly description about staying calm
+
+## Bug Fix: System Glitch XP
+- [ ] Fix penaltyXp to subtract from totalXp (not just xp)
+- [ ] Fix undo path for glitch quests to add back to totalXp correctly
+- [ ] Update tests to verify corrected behaviour

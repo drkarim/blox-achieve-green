@@ -132,15 +132,22 @@ export const appRouter = router({
         if (!wasUncompleted) {
           throw new TRPCError({ code: "CONFLICT", message: "Quest was not completed today — nothing to undo." });
         }
-
-        const result = await subtractXp(ctx.user.id, quest.xp);
-
+        // For glitch quests (xp < 0), undoing means ADDING the penalty back.
+        // For normal quests (xp > 0), undoing means SUBTRACTING the reward.
+        let undoResult: { xp: number; level: number; leveledDown?: boolean };
+        if (quest.xp < 0) {
+          // Restore the penalty: add back Math.abs(quest.xp) to both xp and totalXp
+          const restored = await addXp(ctx.user.id, Math.abs(quest.xp));
+          undoResult = { xp: restored.xp, level: restored.level, leveledDown: false };
+        } else {
+          undoResult = await subtractXp(ctx.user.id, quest.xp);
+        }
         return {
           success: true,
           xpLost: quest.xp,
-          xp: result.xp,
-          level: result.level,
-          leveledDown: result.leveledDown,
+          xp: undoResult.xp,
+          level: undoResult.level,
+          leveledDown: undoResult.leveledDown ?? false,
         };
       }),
 

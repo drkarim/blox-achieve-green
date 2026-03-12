@@ -210,10 +210,10 @@ export async function subtractXp(userId: number, amount: number): Promise<{ xp: 
 /**
  * penaltyXp: applies a negative-XP penalty (e.g. System Glitch quest).
  * - Subtracts from current-level xp, floored at 0 (never goes negative).
+ * - Also subtracts from totalXp (all-time total), floored at 0.
  * - Does NOT trigger level-down (it's a penalty, not an undo).
- * - Does NOT change totalXp (lifetime earnings are preserved).
  */
-export async function penaltyXp(userId: number, amount: number): Promise<{ xp: number; level: number }> {
+export async function penaltyXp(userId: number, amount: number): Promise<{ xp: number; level: number; totalXp: number }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -222,12 +222,13 @@ export async function penaltyXp(userId: number, amount: number): Promise<{ xp: n
 
   // Floor at 0 — penalty cannot push XP below zero
   const newXp = Math.max(0, progress.xp - amount);
+  const newTotalXp = Math.max(0, progress.totalXp - amount);
 
   await db.update(userProgress)
-    .set({ xp: newXp })
+    .set({ xp: newXp, totalXp: newTotalXp })
     .where(eq(userProgress.userId, userId));
 
-  return { xp: newXp, level: progress.level };
+  return { xp: newXp, level: progress.level, totalXp: newTotalXp };
 }
 
 // ─── Prestige helper ────────────────────────────────────────────────────────────────────────────────────

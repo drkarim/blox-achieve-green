@@ -139,9 +139,9 @@ describe("quest.list", () => {
     const labels = result.map(q => q.label);
     expect(labels).toContain("Daily Grind");
     expect(labels).toContain("Homework Quest");
-    expect(labels).toContain("Room Recon");
+    expect(labels).toContain("Household Chores");
     expect(labels).toContain("Reading Mission");
-    expect(labels).toContain("Custom Training");
+    expect(labels).toContain("Controlling Anger");
     expect(labels).toContain("Power Down: The Offline Buff");
     expect(labels).toContain("System Glitch");
   });
@@ -307,9 +307,9 @@ describe("QUESTS constant", () => {
     const labels = QUESTS.map(q => q.label);
     expect(labels).toContain("Daily Grind");
     expect(labels).toContain("Homework Quest");
-    expect(labels).toContain("Room Recon");
+    expect(labels).toContain("Household Chores");
     expect(labels).toContain("Reading Mission");
-    expect(labels).toContain("Custom Training");
+    expect(labels).toContain("Controlling Anger");
     expect(labels).toContain("Power Down: The Offline Buff");
     expect(labels).toContain("System Glitch");
   });
@@ -413,7 +413,7 @@ describe("quest.complete (system_glitch)", () => {
 
   it("applies -30 XP penalty via penaltyXp (not addXp)", async () => {
     vi.mocked(db.completeQuest).mockResolvedValue(true);
-    vi.mocked(db.penaltyXp).mockResolvedValue({ xp: 20, level: 1 });
+    vi.mocked(db.penaltyXp).mockResolvedValue({ xp: 20, level: 1, totalXp: 170 });
     const ctx = createContext(createMockUser());
     const caller = appRouter.createCaller(ctx);
     const result = await caller.quest.complete({ questKey: "system_glitch" });
@@ -425,7 +425,7 @@ describe("quest.complete (system_glitch)", () => {
 
   it("does NOT trigger level-up for negative XP quest", async () => {
     vi.mocked(db.completeQuest).mockResolvedValue(true);
-    vi.mocked(db.penaltyXp).mockResolvedValue({ xp: 0, level: 1 });
+    vi.mocked(db.penaltyXp).mockResolvedValue({ xp: 0, level: 1, totalXp: 0 });
     const ctx = createContext(createMockUser());
     const caller = appRouter.createCaller(ctx);
     const result = await caller.quest.complete({ questKey: "system_glitch" });
@@ -434,7 +434,7 @@ describe("quest.complete (system_glitch)", () => {
 
   it("does NOT unlock badges for negative XP quest", async () => {
     vi.mocked(db.completeQuest).mockResolvedValue(true);
-    vi.mocked(db.penaltyXp).mockResolvedValue({ xp: 20, level: 1 });
+    vi.mocked(db.penaltyXp).mockResolvedValue({ xp: 20, level: 1, totalXp: 170 });
     const ctx = createContext(createMockUser());
     const caller = appRouter.createCaller(ctx);
     const result = await caller.quest.complete({ questKey: "system_glitch" });
@@ -445,7 +445,7 @@ describe("quest.complete (system_glitch)", () => {
   it("floors at 0 XP — never goes negative", async () => {
     vi.mocked(db.completeQuest).mockResolvedValue(true);
     // penaltyXp itself floors at 0 (tested in db.ts unit tests)
-    vi.mocked(db.penaltyXp).mockResolvedValue({ xp: 0, level: 1 });
+    vi.mocked(db.penaltyXp).mockResolvedValue({ xp: 0, level: 1, totalXp: 0 });
     const ctx = createContext(createMockUser());
     const caller = appRouter.createCaller(ctx);
     const result = await caller.quest.complete({ questKey: "system_glitch" });
@@ -459,6 +459,39 @@ describe("quest.complete (system_glitch)", () => {
     await expect(
       caller.quest.complete({ questKey: "system_glitch" })
     ).rejects.toThrow("Quest already completed today");
+  });
+});
+
+
+// ─── System Glitch Undo Tests ──────────────────────────────────────────────────
+describe("quest.uncomplete (system_glitch)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("restores +30 XP to both xp and totalXp when glitch is undone", async () => {
+    vi.mocked(db.uncompleteQuest).mockResolvedValue(true);
+    // Undoing a glitch uses addXp to restore the penalty
+    vi.mocked(db.addXp).mockResolvedValue({ xp: 50, level: 1, leveledUp: false, newLevel: 1 });
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.quest.uncomplete({ questKey: "system_glitch" });
+    expect(result.success).toBe(true);
+    // xpLost is -30 (the original quest.xp)
+    expect(result.xpLost).toBe(-30);
+    // addXp should be called with +30 to restore the penalty
+    expect(db.addXp).toHaveBeenCalledWith(1, 30);
+    // subtractXp must NOT be called for a glitch undo
+    expect(db.subtractXp).not.toHaveBeenCalled();
+  });
+
+  it("throws CONFLICT if glitch was not activated today", async () => {
+    vi.mocked(db.uncompleteQuest).mockResolvedValue(false);
+    const ctx = createContext(createMockUser());
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.quest.uncomplete({ questKey: "system_glitch" })
+    ).rejects.toThrow("Quest was not completed today");
   });
 });
 
