@@ -28,7 +28,7 @@ export const QUESTS = [
   { key: "homework_quest",   label: "Homework Quest",                 description: "Conquer your homework and level up your brain!",           icon: "📚",  xp: 50,  variant: "normal"    },
   { key: "room_recon",       label: "Household Chores",               description: "Doing chores and helping mum and dad.",                    icon: "🏠",  xp: 50,  variant: "normal"    },
   { key: "reading_mission",  label: "Reading Mission",                description: "Read for at least 20 minutes today.",                     icon: "📖",  xp: 50,  variant: "normal"    },
-  { key: "custom_training",  label: "Custom Training",                description: "Exercise, practice, or learn something new!",             icon: "🏋️",  xp: 50,  variant: "normal"    },
+  { key: "custom_training",  label: "Controlling Anger",              description: "Keep your cool, hero! No shouting, no rudeness — breathe deep, stay calm, and show everyone your superpower! 🧘",  icon: "🧘",  xp: 50,  variant: "normal"    },
   { key: "offline_buff",     label: "Power Down: The Offline Buff",   description: "Completed at least 1 hour of screen-free time.",          icon: "🌿",  xp: 80,  variant: "legendary" },
   { key: "system_glitch",    label: "System Glitch",                  description: "A corruption in the system. Activate at your own risk!",  icon: "💀",  xp: -30, variant: "glitch"    },
 ] as const;

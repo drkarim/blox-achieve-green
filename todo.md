@@ -82,3 +82,6 @@
 
 ## Quest Rename
 - [x] Rename 'Room Recon' → 'Household Chores' with description 'Doing chores and helping mum and dad'
+
+## Quest Rename #2
+- [x] Rename 'Custom Training' → 'Controlling Anger' with fun kid-friendly description about staying calm
