@@ -26,7 +26,7 @@ import { sdk } from "./_core/sdk";
 export const QUESTS = [
   { key: "daily_grind",      label: "Daily Grind",                    description: "Start your day strong! Complete your morning routine.",    icon: "⚡",  xp: 50,  variant: "normal"    },
   { key: "homework_quest",   label: "Homework Quest",                 description: "Conquer your homework and level up your brain!",           icon: "📚",  xp: 50,  variant: "normal"    },
-  { key: "room_recon",       label: "Room Recon",                     description: "Clean and organize your room like a pro.",                 icon: "🏠",  xp: 50,  variant: "normal"    },
+  { key: "room_recon",       label: "Household Chores",               description: "Doing chores and helping mum and dad.",                    icon: "🏠",  xp: 50,  variant: "normal"    },
   { key: "reading_mission",  label: "Reading Mission",                description: "Read for at least 20 minutes today.",                     icon: "📖",  xp: 50,  variant: "normal"    },
   { key: "custom_training",  label: "Custom Training",                description: "Exercise, practice, or learn something new!",             icon: "🏋️",  xp: 50,  variant: "normal"    },
   { key: "offline_buff",     label: "Power Down: The Offline Buff",   description: "Completed at least 1 hour of screen-free time.",          icon: "🌿",  xp: 80,  variant: "legendary" },

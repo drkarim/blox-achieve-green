@@ -79,3 +79,6 @@
 - [x] Write vitest tests for xpHistory query (44 total tests)
 - [x] Update README.md, CLAUDE.md, and skill
 - [x] Push to GitHub and save checkpoint
+
+## Quest Rename
+- [x] Rename 'Room Recon' → 'Household Chores' with description 'Doing chores and helping mum and dad'
