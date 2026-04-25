@@ -227,10 +227,65 @@ The app will be available at `http://localhost:3000`.
 pnpm dev              # Start dev server (frontend + backend, port 3000)
 pnpm build            # Production build
 pnpm start            # Run production build
+pnpm migrate          # Run database migrations (uses scripts/migrate.mjs)
+pnpm start:railway    # Run migrations then start server (used by Railway)
 pnpm test             # Run all Vitest tests
 pnpm check            # TypeScript type-check (no emit)
 pnpm drizzle-kit generate   # Generate migration SQL from schema changes
 ```
+
+---
+
+## Deploying to Railway
+
+The repository ships with a `Dockerfile` and `railway.toml` that make one-click deployment to [Railway](https://railway.app) straightforward. The container runs a two-stage build (pnpm + esbuild/Vite) and automatically applies any pending database migrations on every startup before the Express server begins accepting requests.
+
+### Step 1 — Create a new Railway project
+
+1. Go to [railway.app](https://railway.app) and create a new project.
+2. Choose **Deploy from GitHub repo** and select `drkarim/blox-achieve-green`.
+3. Railway will detect the `Dockerfile` automatically.
+
+### Step 2 — Add a MySQL database
+
+1. Inside your Railway project, click **+ New** → **Database** → **MySQL**.
+2. Once provisioned, Railway automatically injects a `DATABASE_URL` variable into your service. No manual copy-paste is needed.
+
+### Step 3 — Set environment variables
+
+In your Railway service's **Variables** panel, add the following:
+
+| Variable | Value | Notes |
+|---|---|---|
+| `DATABASE_URL` | *(auto-injected by Railway MySQL plugin)* | Must be a MySQL connection string |
+| `JWT_SECRET` | A long random string | Generate with `openssl rand -base64 48` |
+| `VITE_APP_ID` | `level-up-portal` | Any unique string; used in JWT payload |
+| `NODE_ENV` | `production` | Tells the server to serve static files from `dist/public` |
+| `PORT` | *(leave unset — Railway injects this automatically)* | The server reads `PORT` from the environment |
+
+All other variables in `.env.example` are optional and can be left blank for a self-hosted deployment that uses username/password auth only.
+
+### Step 4 — Deploy
+
+Push to the `main` branch (or trigger a manual deploy in the Railway dashboard). Railway will:
+
+1. Build the Docker image using the multi-stage `Dockerfile`.
+2. Start the container, which runs `node scripts/migrate.mjs` to apply all pending Drizzle migrations.
+3. Start the Express server, which serves the React frontend from `dist/public` and handles all API calls under `/api/trpc`.
+
+### How the startup sequence works
+
+The `CMD` in the `Dockerfile` is:
+
+```sh
+node scripts/migrate.mjs && node dist/index.js
+```
+
+`scripts/migrate.mjs` uses the Drizzle `migrate()` helper to apply any SQL files in the `drizzle/` folder that have not yet been applied. It is idempotent — running it multiple times on an already-migrated database is safe. The server only starts if migrations succeed; if the database is unreachable, the container exits with a non-zero code and Railway will retry according to the restart policy in `railway.toml`.
+
+### Notes on the Manus-specific runtime
+
+The built frontend bundle includes the `vite-plugin-manus-runtime` script, which powers the visual editor inside the Manus platform. Outside Manus, this script checks `window.__MANUS_HOST_DEV__` (which is `false` in production) and renders nothing — it has no effect on a Railway deployment and does not require any Manus credentials.
 
 ---
 
